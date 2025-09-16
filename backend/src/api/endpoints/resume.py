@@ -1,9 +1,15 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-import os
+from pydantic import BaseModel
+from typing import Literal
 from pathlib import Path
 
 router = APIRouter()
+
+class PreferencesData(BaseModel):
+    role: Literal['Software Engineer', 'Data Scientist', 'ML Engineer', 'DevOps Engineer']
+    industry: Literal['FinTech', 'Healthcare', 'Defense', 'Tech', 'Consulting']
+    location: str
 
 # Create uploads directory relative to the backend folder
 UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "uploads"
@@ -31,6 +37,18 @@ async def upload_resume(file: UploadFile = File(...)):
             
         return JSONResponse(
             content={"message": "Resume uploaded successfully"},
+            status_code=200
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/preferences")
+async def save_preferences(preferences: PreferencesData):
+    try:
+        # Here you would typically save this to a database
+        # For now, we'll just return success
+        return JSONResponse(
+            content={"message": "Preferences saved successfully"},
             status_code=200
         )
     except Exception as e:

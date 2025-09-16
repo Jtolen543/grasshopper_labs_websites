@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
+import { Questionnaire } from './Questionnaire';
+import type { QuestionnaireData } from '../types/questions';
 
 function FileForm() {
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
+    const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -37,7 +40,7 @@ function FileForm() {
 
             setFile(null);
             (e.target as HTMLFormElement).reset();
-            alert('Resume uploaded successfully!');
+            setShowQuestionnaire(true); // Show questionnaire after successful upload
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to upload resume');
             console.error(err);
@@ -46,10 +49,31 @@ function FileForm() {
         }
     };
 
+    const handleQuestionnaireSubmit = async (data: QuestionnaireData) => {
+        try {
+            const response = await fetch('http://localhost:8000/api/resume/preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save preferences');
+            }
+
+            setShowQuestionnaire(false);
+            alert('Thank you! Your preferences have been saved.');
+        } catch (err) {
+            setError('Failed to save preferences');
+            console.error(err);
+        }
+    };
+
     return (
         <div className="max-w-md mx-auto p-6">
             <h1 className="text-2xl font-bold mb-4">Upload Resume</h1>
-
             <form onSubmit={handleSubmit}>
                 <input 
                     type="file" 
@@ -66,6 +90,13 @@ function FileForm() {
                     {loading ? 'Uploading...' : 'Upload'}
                 </button>
             </form>
+
+            {showQuestionnaire && (
+                <Questionnaire 
+                    onSubmit={handleQuestionnaireSubmit}
+                    onClose={() => setShowQuestionnaire(false)}
+                />
+            )}
         </div>
     );
 }
