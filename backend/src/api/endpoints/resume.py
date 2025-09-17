@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Literal
 from pathlib import Path
+from config import settings
+import os
 
 router = APIRouter()
 
@@ -12,14 +14,10 @@ class PreferencesData(BaseModel):
     location: str
 
 # Create uploads directory relative to the backend folder
-UPLOAD_DIR = Path(__file__).parent.parent.parent.parent / "uploads"
 
-@router.post("/upload")
+@router.post("")
 async def upload_resume(file: UploadFile = File(...)):
-    try:
-        # Create uploads directory if it doesn't exist
-        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-        
+    try:    
         # Validate file type
         allowed_types = [".pdf", ".doc", ".docx"]
         file_ext = Path(file.filename).suffix.lower()
@@ -30,8 +28,8 @@ async def upload_resume(file: UploadFile = File(...)):
             )
         
         # Save the file
-        file_path = UPLOAD_DIR / file.filename
-        with file_path.open("wb") as buffer:
+        file_path = os.path.join(settings.UPLOAD_DIR, file.filename)
+        with open(file_path, "wb") as buffer:
             content = await file.read()
             buffer.write(content)
             
