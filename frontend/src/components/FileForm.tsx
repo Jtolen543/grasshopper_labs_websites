@@ -1,20 +1,32 @@
-import { useState } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
-import { Questionnaire } from './Questionnaire';
-import type { QuestionnaireData } from '../types/questions';
+import { useState, useCallback } from 'react'
+import {useDropzone} from 'react-dropzone'
+import type { FormEvent } from 'react'
+import { Questionnaire } from './Questionnaire'
+import type { QuestionnaireData } from '../types/questions'
 
-function FileForm() {
+export function FileForm() {
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
     const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setFile(e.target.files[0]);
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        if (acceptedFiles.length > 0) {
+            setFile(acceptedFiles[0]);
             setError('');
         }
-    };
+    }, []);
+
+    const {getRootProps, getInputProps, isDragActive} = useDropzone({
+        onDrop,
+        accept: {
+            'application/pdf': ['.pdf'],
+            'application/msword': ['.doc'],
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+            'text/plain': ['.txt']
+        },
+        multiple: false
+    });
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -25,7 +37,7 @@ function FileForm() {
 
         setLoading(true);
         const formData = new FormData();
-        formData.append('file', file); // Changed from 'resume' to 'file' to match FastAPI parameter name
+        formData.append('file', file)
 
         try {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/resume`, {
@@ -40,7 +52,7 @@ function FileForm() {
 
             setFile(null);
             (e.target as HTMLFormElement).reset();
-            setShowQuestionnaire(true); // Show questionnaire after successful upload
+            setShowQuestionnaire(true)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to upload resume');
             console.error(err);
@@ -74,20 +86,60 @@ function FileForm() {
     return (
         <div className="max-w-md mx-auto p-6">
             <h1 className="text-2xl font-bold mb-4">Upload Resume</h1>
-            <form onSubmit={handleSubmit}>
-                <input 
-                    type="file" 
-                    onChange={handleFileChange}
-                    accept=".pdf,.doc,.docx"
-                    className="block w-full mb-4"
-                />
-                {error && <p className="text-red-500 mb-4">{error}</p>}
-                <button 
-                    type="submit" 
-                    disabled={loading}
-                    className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div 
+                    {...getRootProps()} 
+                    className={`
+                        border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+                        ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+                        ${file ? 'border-green-500 bg-green-50' : ''}
+                    `}
                 >
-                    {loading ? 'Uploading...' : 'Upload'}
+                    <input {...getInputProps()} />
+                    {isDragActive ? (
+                        <p className="text-blue-600">Drop the resume here...</p>
+                    ) : (
+                        <div>
+                            <p className="text-gray-600 mb-2">
+                                Drag & drop your resume here, or click to select
+                            </p>
+                            <p className="text-sm text-gray-400">
+                                Supports PDF, DOC, DOCX, TXT files
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {file && (
+                    <div className="p-3 bg-gray-50 rounded border">
+                        <p className="text-sm text-gray-700">
+                            Selected: <span className="font-medium">{file.name}</span>
+                        </p>
+                        <p className="text-xs text-gray-500">
+                            Size: {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded">
+                        <p className="text-red-600 text-sm">{error}</p>
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    disabled={!file || loading}
+                    className={`
+                        w-full py-2 px-4 rounded font-medium transition-colors
+                        ${!file || loading 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }
+                    `}
+                >
+                    {loading ? 'Uploading...' : 'Upload Resume'}
                 </button>
             </form>
 
@@ -100,5 +152,3 @@ function FileForm() {
         </div>
     );
 }
-
-export default FileForm;

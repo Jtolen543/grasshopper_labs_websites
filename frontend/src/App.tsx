@@ -1,6 +1,4 @@
-import './App.css'
-import FileForm from './components/FileForm'
-
+import { FileForm } from './components/FileForm'
 
 function App() {
   return (

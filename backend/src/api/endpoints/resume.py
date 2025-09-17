@@ -13,12 +13,10 @@ class PreferencesData(BaseModel):
     industry: Literal['FinTech', 'Healthcare', 'Defense', 'Tech', 'Consulting']
     location: str
 
-# Create uploads directory relative to the backend folder
 
 @router.post("")
 async def upload_resume(file: UploadFile = File(...)):
     try:    
-        # Validate file type
         allowed_types = [".pdf", ".doc", ".docx"]
         file_ext = Path(file.filename).suffix.lower()
         if file_ext not in allowed_types:
@@ -27,7 +25,6 @@ async def upload_resume(file: UploadFile = File(...)):
                 detail="File type not allowed. Please upload PDF, DOC, or DOCX"
             )
         
-        # Save the file
         file_path = os.path.join(settings.UPLOAD_DIR, file.filename)
         with open(file_path, "wb") as buffer:
             content = await file.read()
