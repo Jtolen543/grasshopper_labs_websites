@@ -5,6 +5,7 @@ backend/.venv/
 backend/*.pyc
 backend/instance/
 backend/.env
+backend/static/uploads/
 
 # React 
 frontend/node_modules/

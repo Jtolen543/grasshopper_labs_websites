@@ -28,7 +28,7 @@ function FileForm() {
         formData.append('file', file); // Changed from 'resume' to 'file' to match FastAPI parameter name
 
         try {
-            const response = await fetch('http://localhost:8000/api/resume/upload', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/resume`, {
                 method: 'POST',
                 body: formData,
             });
@@ -51,7 +51,7 @@ function FileForm() {
 
     const handleQuestionnaireSubmit = async (data: QuestionnaireData) => {
         try {
-            const response = await fetch('http://localhost:8000/api/resume/preferences', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/resume/preferences`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

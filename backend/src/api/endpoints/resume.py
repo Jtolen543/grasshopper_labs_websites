@@ -45,8 +45,6 @@ async def upload_resume(file: UploadFile = File(...)):
 @router.post("/preferences")
 async def save_preferences(preferences: PreferencesData):
     try:
-        # Here you would typically save this to a database
-        # For now, we'll just return success
         return JSONResponse(
             content={"message": "Preferences saved successfully"},
             status_code=200
