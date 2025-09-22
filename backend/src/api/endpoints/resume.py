@@ -1,48 +1,49 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import Literal
 from pathlib import Path
 from config import settings
-import os
+from ...utils.resume_parser import ResumeParser
+import uuid
 
 router = APIRouter()
+parser = ResumeParser()
 
-class PreferencesData(BaseModel):
-    role: Literal['Software Engineer', 'Data Scientist', 'ML Engineer', 'DevOps Engineer']
-    industry: Literal['FinTech', 'Healthcare', 'Defense', 'Tech', 'Consulting']
-    location: str
-
-
-@router.post("")
+@router.post("/upload")
 async def upload_resume(file: UploadFile = File(...)):
-    try:    
-        allowed_types = [".pdf", ".doc", ".docx"]
-        file_ext = Path(file.filename).suffix.lower()
-        if file_ext not in allowed_types:
-            raise HTTPException(
-                status_code=400, 
-                detail="File type not allowed. Please upload PDF, DOC, or DOCX"
+    try:
+        # Get upload directory from settings
+        upload_dir = Path(settings.STATIC_DIR) / "uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Validate file type
+        if not file.filename.lower().endswith('.pdf'):
+            return JSONResponse(
+                content={"error": "Only PDF files are allowed"},
+                status_code=400
             )
         
-        file_path = os.path.join(settings.UPLOAD_DIR, file.filename)
-        with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+        # Save the file
+        original_filename = file.filename
+        unique_filename = f"{uuid.uuid4()}.pdf"
+        file_path = upload_dir / unique_filename
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
             
+        # Parse the uploaded resume
+        parsed_data = parser.extract_fields(file_path)
+        
         return JSONResponse(
-            content={"message": "Resume uploaded successfully"},
+            content={
+                "message": "Resume uploaded and parsed successfully",
+                "original_filename": original_filename,
+                "stored_filename": unique_filename,
+                "parsed_data": parsed_data
+            },
             status_code=200
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/preferences")
-async def save_preferences(preferences: PreferencesData):
-    try:
-        return JSONResponse(
-            content={"message": "Preferences saved successfully"},
-            status_code=200
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

@@ -37,25 +37,33 @@ export function FileForm() {
 
         setLoading(true);
         const formData = new FormData();
-        formData.append('file', file)
+        formData.append('file', file);
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/resume`, {
+            // Changed from /api/resume/upload to /api/resume
+            const response = await fetch('http://localhost:8000/api/resume/upload', {
                 method: 'POST',
                 body: formData,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Upload failed');
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Server did not return JSON");
             }
 
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Upload failed');
+            }
+
+            console.log('Upload successful:', data);
             setFile(null);
             (e.target as HTMLFormElement).reset();
-            setShowQuestionnaire(true)
+            alert(data.message || 'Resume uploaded successfully!');
         } catch (err) {
+            console.error('Upload error:', err);
             setError(err instanceof Error ? err.message : 'Failed to upload resume');
-            console.error(err);
         } finally {
             setLoading(false);
         }
