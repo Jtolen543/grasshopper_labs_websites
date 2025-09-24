@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
+"pdf-parser"
 
 interface KeywordsInterface {
   skills: string[]
