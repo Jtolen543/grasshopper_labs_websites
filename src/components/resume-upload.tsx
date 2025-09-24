@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Search, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface UploadedFile {
@@ -12,6 +12,31 @@ interface UploadedFile {
   size: number
   type: string
   uploadedAt: string
+  filename?: string
+}
+
+interface ParsedData {
+  success: boolean
+  filename: string
+  analysis: {
+    wordCount: number
+    hasContactInfo: boolean
+    hasPhoneNumber: boolean
+    keywords: {
+      skills: string[]
+      experience: string[]
+      education: string[]
+      certifications: string[]
+      languages: string[]
+    }
+    summary: {
+      totalSkills: number
+      totalExperience: number
+      totalEducation: number
+      totalCertifications: number
+      totalLanguages: number
+    }
+  }
 }
 
 export function ResumeUpload() {
@@ -19,11 +44,16 @@ export function ResumeUpload() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
+  const [parsedData, setParsedData] = useState<ParsedData | null>(null)
+  const [isParsing, setIsParsing] = useState(false)
+  const [showParsedData, setShowParsedData] = useState(false)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true)
     setUploadStatus("idle")
     setErrorMessage("")
+    setParsedData(null)
+    setShowParsedData(false)
 
     try {
       for (const file of acceptedFiles) {
@@ -42,15 +72,15 @@ export function ResumeUpload() {
         const result = await response.json()
 
         // Add to uploaded files list
-        setUploadedFiles((prev) => [
-          ...prev,
-          {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            uploadedAt: new Date().toISOString(),
-          },
-        ])
+        const uploadedFile = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          uploadedAt: new Date().toISOString(),
+          filename: result.filename,
+        }
+
+        setUploadedFiles((prev) => [...prev, uploadedFile])
       }
 
       setUploadStatus("success")
@@ -62,6 +92,32 @@ export function ResumeUpload() {
       setIsUploading(false)
     }
   }, [])
+
+  const parseResume = async (filename: string) => {
+    setIsParsing(true)
+    try {
+      const response = await fetch("/api/parse", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filename }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Parsing failed")
+      }
+
+      const result = await response.json()
+      setParsedData(result)
+      setShowParsedData(true)
+    } catch (error) {
+      console.error("Parse error:", error)
+      setErrorMessage("Failed to parse resume. Please try again.")
+    } finally {
+      setIsParsing(false)
+    }
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -77,6 +133,10 @@ export function ResumeUpload() {
 
   const removeFile = (index: number) => {
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
+    if (parsedData && uploadedFiles[index]?.filename === parsedData.filename) {
+      setParsedData(null)
+      setShowParsedData(false)
+    }
   }
 
   const formatFileSize = (bytes: number) => {
@@ -158,16 +218,130 @@ export function ResumeUpload() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(index)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => file.filename && parseResume(file.filename)}
+                      disabled={isParsing || !file.filename}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      {isParsing ? (
+                        <>
+                          <Search className="h-4 w-4 mr-1 animate-spin" />
+                          Parsing...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 mr-1" />
+                          Parse
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {parsedData && showParsedData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Eye className="h-5 w-5" />
+              <span>Resume Analysis</span>
+            </CardTitle>
+            <CardDescription>Extracted keywords and analysis from {parsedData.filename}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{parsedData.analysis.summary.totalSkills}</div>
+                  <div className="text-sm text-muted-foreground">Skills</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{parsedData.analysis.summary.totalExperience}</div>
+                  <div className="text-sm text-muted-foreground">Experience</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{parsedData.analysis.summary.totalEducation}</div>
+                  <div className="text-sm text-muted-foreground">Education</div>
+                </div>
+                <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {parsedData.analysis.summary.totalCertifications}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Certifications</div>
+                </div>
+                <div className="text-center p-3 bg-teal-50 dark:bg-teal-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-teal-600">{parsedData.analysis.wordCount}</div>
+                  <div className="text-sm text-muted-foreground">Words</div>
+                </div>
+              </div>
+
+              {/* Keywords by Category */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {Object.entries(parsedData.analysis.keywords).map(
+                  ([category, keywords]) =>
+                    keywords.length > 0 && (
+                      <div key={category} className="space-y-2">
+                        <h4 className="font-semibold capitalize text-foreground">{category}</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {keywords.map((keyword, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ),
+                )}
+              </div>
+
+              {/* Contact Info Status */}
+              <div className="flex space-x-4 text-sm">
+                <div
+                  className={`flex items-center space-x-1 ${parsedData.analysis.hasContactInfo ? "text-green-600" : "text-red-600"}`}
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full ${parsedData.analysis.hasContactInfo ? "bg-green-600" : "bg-red-600"}`}
+                  />
+                  <span>Email {parsedData.analysis.hasContactInfo ? "Found" : "Not Found"}</span>
+                </div>
+                <div
+                  className={`flex items-center space-x-1 ${parsedData.analysis.hasPhoneNumber ? "text-green-600" : "text-red-600"}`}
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full ${parsedData.analysis.hasPhoneNumber ? "bg-green-600" : "bg-red-600"}`}
+                  />
+                  <span>Phone {parsedData.analysis.hasPhoneNumber ? "Found" : "Not Found"}</span>
+                </div>
+              </div>
+
+              {/* Raw JSON Data */}
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+                  View Raw JSON Data
+                </summary>
+                <pre className="mt-2 p-4 bg-muted rounded-lg text-xs overflow-auto">
+                  {JSON.stringify(parsedData, null, 2)}
+                </pre>
+              </details>
             </div>
           </CardContent>
         </Card>
@@ -175,3 +349,4 @@ export function ResumeUpload() {
     </div>
   )
 }
+
