@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file received" }, { status: 400 })
     }
 
+    // Validate file type
     const allowedTypes = [
       "application/pdf",
       "application/msword",
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
         {
@@ -40,16 +42,19 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
+    // Create uploads directory if it doesn't exist
     const uploadsDir = join(process.cwd(), "uploads")
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
     }
 
+    // Generate unique filename with timestamp
     const timestamp = Date.now()
     const fileExtension = file.name.split(".").pop()
     const filename = `resume_${timestamp}.${fileExtension}`
     const filepath = join(uploadsDir, filename)
 
+    // Write the file
     await writeFile(filepath, buffer)
 
     return NextResponse.json({
