@@ -181,7 +181,6 @@ export function ResumeUpload() {
             </div>
           </div>
 
-          {/* Upload Status */}
           {uploadStatus === "success" && (
             <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -198,7 +197,6 @@ export function ResumeUpload() {
         </CardContent>
       </Card>
 
-      {/* Uploaded Files List */}
       {uploadedFiles.length > 0 && (
         <Card>
           <CardHeader>
@@ -313,7 +311,6 @@ export function ResumeUpload() {
                 )}
               </div>
 
-              {/* Contact Info Status */}
               <div className="flex space-x-4 text-sm">
                 <div
                   className={`flex items-center space-x-1 ${parsedData.analysis.hasContactInfo ? "text-green-600" : "text-red-600"}`}
@@ -333,7 +330,6 @@ export function ResumeUpload() {
                 </div>
               </div>
 
-              {/* Raw JSON Data */}
               <details className="mt-4">
                 <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
                   View Raw JSON Data

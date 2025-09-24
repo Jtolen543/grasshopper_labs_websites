@@ -3,17 +3,17 @@ import { readFile } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
 
-// Simple keyword extraction function
-function extractKeywords(text: string): {
+interface KeywordsInterface {
   skills: string[]
   experience: string[]
   education: string[]
   certifications: string[]
   languages: string[]
-} {
+}
+
+function extractKeywords(text: string): KeywordsInterface {
   const lowerText = text.toLowerCase()
 
-  // Common technical skills
   const skillKeywords = [
     "javascript",
     "typescript",
@@ -58,7 +58,6 @@ function extractKeywords(text: string): {
     "problem solving",
   ]
 
-  // Experience indicators
   const experienceKeywords = [
     "years of experience",
     "senior",
@@ -78,7 +77,6 @@ function extractKeywords(text: string): {
     "mentored",
   ]
 
-  // Education keywords
   const educationKeywords = [
     "bachelor",
     "master",
@@ -95,7 +93,6 @@ function extractKeywords(text: string): {
     "statistics",
   ]
 
-  // Certification keywords
   const certificationKeywords = [
     "certified",
     "certification",
@@ -110,7 +107,6 @@ function extractKeywords(text: string): {
     "oracle certified",
   ]
 
-  // Language keywords
   const languageKeywords = [
     "english",
     "spanish",
@@ -142,7 +138,6 @@ function extractKeywords(text: string): {
   }
 }
 
-// Parse different file types
 async function parseFileContent(filepath: string, fileType: string): Promise<string> {
   try {
     if (fileType === "text/plain") {
@@ -199,6 +194,17 @@ export async function POST(request: NextRequest) {
     const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length
     const hasContactInfo = /\b[\w._%+-]+@[\w.-]+\.[A-Z|a-z]{2,}\b/.test(content)
     const hasPhoneNumber = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(content)
+    let gpas = []
+    let match;
+    while ((match = /[gG][pP][aA]\s*[:\-]?\s*[0-4](\.\d{1,2})?(\s*[\/]\s*[0-4](\.\d{1,2})?)?/.exec(content)) !== null) {
+      const numerator = match[1]
+      const denominator = match[2]
+
+      gpas.push({
+        numerator: parseFloat(numerator),
+        denominator: denominator ? parseFloat(denominator) : 4.0
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -208,6 +214,7 @@ export async function POST(request: NextRequest) {
         hasContactInfo,
         hasPhoneNumber,
         keywords,
+        hasGPA: gpas.length > 0 ? true : false,
         summary: {
           totalSkills: keywords.skills.length,
           totalExperience: keywords.experience.length,
