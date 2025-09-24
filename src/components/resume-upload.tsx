@@ -96,6 +96,7 @@ export function ResumeUpload() {
   const parseResume = async (filename: string) => {
     setIsParsing(true)
     try {
+      console.log(filename)
       const response = await fetch("/api/parse", {
         method: "POST",
         headers: {

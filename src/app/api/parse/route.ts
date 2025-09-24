@@ -2,142 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
-"pdf-parser"
-
-interface KeywordsInterface {
-  skills: string[]
-  experience: string[]
-  education: string[]
-  certifications: string[]
-  languages: string[]
-}
-
-function extractKeywords(text: string): KeywordsInterface {
-  const lowerText = text.toLowerCase()
-
-  const skillKeywords = [
-    "javascript",
-    "typescript",
-    "python",
-    "java",
-    "react",
-    "node.js",
-    "angular",
-    "vue",
-    "html",
-    "css",
-    "sql",
-    "mongodb",
-    "postgresql",
-    "mysql",
-    "aws",
-    "azure",
-    "docker",
-    "kubernetes",
-    "git",
-    "agile",
-    "scrum",
-    "rest api",
-    "graphql",
-    "microservices",
-    "machine learning",
-    "ai",
-    "data analysis",
-    "excel",
-    "powerbi",
-    "tableau",
-    "photoshop",
-    "illustrator",
-    "figma",
-    "sketch",
-    "ui/ux",
-    "design",
-    "marketing",
-    "project management",
-    "leadership",
-    "communication",
-    "problem solving",
-  ]
-
-  const experienceKeywords = [
-    "years of experience",
-    "senior",
-    "lead",
-    "manager",
-    "director",
-    "architect",
-    "developed",
-    "implemented",
-    "managed",
-    "led",
-    "created",
-    "designed",
-    "collaborated",
-    "coordinated",
-    "supervised",
-    "mentored",
-  ]
-
-  const educationKeywords = [
-    "bachelor",
-    "master",
-    "phd",
-    "degree",
-    "university",
-    "college",
-    "computer science",
-    "engineering",
-    "business",
-    "marketing",
-    "design",
-    "mathematics",
-    "statistics",
-  ]
-
-  const certificationKeywords = [
-    "certified",
-    "certification",
-    "aws certified",
-    "microsoft certified",
-    "google certified",
-    "pmp",
-    "scrum master",
-    "cissp",
-    "comptia",
-    "cisco",
-    "oracle certified",
-  ]
-
-  const languageKeywords = [
-    "english",
-    "spanish",
-    "french",
-    "german",
-    "chinese",
-    "japanese",
-    "korean",
-    "portuguese",
-    "italian",
-    "russian",
-    "arabic",
-    "hindi",
-    "native",
-    "fluent",
-    "conversational",
-  ]
-
-  const extractFromKeywords = (keywords: string[]) => {
-    return keywords.filter((keyword) => lowerText.includes(keyword))
-  }
-
-  return {
-    skills: extractFromKeywords(skillKeywords),
-    experience: extractFromKeywords(experienceKeywords),
-    education: extractFromKeywords(educationKeywords),
-    certifications: extractFromKeywords(certificationKeywords),
-    languages: extractFromKeywords(languageKeywords),
-  }
-}
+import pdf from "pdf-parse"
+import mammoth from "mammoth"
+import { extractWithProgramming } from "./manualParse"
 
 async function parseFileContent(filepath: string, fileType: string): Promise<string> {
   try {
@@ -147,13 +14,14 @@ async function parseFileContent(filepath: string, fileType: string): Promise<str
 
     if (fileType === "application/pdf") {
       const buffer = await readFile(filepath)
-      return buffer.toString("utf-8").replace(/[^\x20-\x7E]/g, " ")
+      const document = (await pdf(buffer)).text
+      return document 
     }
 
     if (fileType.includes("word") || fileType.includes("document")) {
-
       const buffer = await readFile(filepath)
-      return buffer.toString("utf-8").replace(/[^\x20-\x7E]/g, " ")
+      const document = (await mammoth.extractRawText({buffer})).value
+      return document
     }
 
     return ""
@@ -165,13 +33,14 @@ async function parseFileContent(filepath: string, fileType: string): Promise<str
 
 export async function POST(request: NextRequest) {
   try {
-    const { filename } = await request.json()
+    const { filename, pipeline } = await request.json()
 
     if (!filename) {
       return NextResponse.json({ error: "No filename provided" }, { status: 400 })
     }
 
     const filepath = join(process.cwd(), "uploads", filename)
+    console.log(filepath)
 
     if (!existsSync(filepath)) {
       return NextResponse.json({ error: "File not found" }, { status: 404 })
@@ -189,42 +58,18 @@ export async function POST(request: NextRequest) {
     }
 
     const content = await parseFileContent(filepath, fileType)
-
-    const keywords = extractKeywords(content)
-
-    const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length
-    const hasContactInfo = /\b[\w._%+-]+@[\w.-]+\.[A-Z|a-z]{2,}\b/.test(content)
-    const hasPhoneNumber = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(content)
-    let gpas = []
-    let match;
-    while ((match = /[gG][pP][aA]\s*[:\-]?\s*[0-4](\.\d{1,2})?(\s*[\/]\s*[0-4](\.\d{1,2})?)?/.exec(content)) !== null) {
-      const numerator = match[1]
-      const denominator = match[2]
-
-      gpas.push({
-        numerator: parseFloat(numerator),
-        denominator: denominator ? parseFloat(denominator) : 4.0
-      });
+    if (pipeline == "AI") {
+      return NextResponse.json({
+        filename
+      })
+    } else {
+      const data = extractWithProgramming(content)
+      return NextResponse.json({
+        ...data, filename
+      })
     }
 
-    return NextResponse.json({
-      success: true,
-      filename,
-      analysis: {
-        wordCount,
-        hasContactInfo,
-        hasPhoneNumber,
-        keywords,
-        hasGPA: gpas.length > 0 ? true : false,
-        summary: {
-          totalSkills: keywords.skills.length,
-          totalExperience: keywords.experience.length,
-          totalEducation: keywords.education.length,
-          totalCertifications: keywords.certifications.length,
-          totalLanguages: keywords.languages.length,
-        },
-      },
-    })
+
   } catch (error) {
     console.error("Error parsing resume:", error)
     return NextResponse.json({ error: "Failed to parse resume" }, { status: 500 })
