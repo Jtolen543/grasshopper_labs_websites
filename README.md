@@ -1,131 +1,36 @@
-# Research Website
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A full-stack web application with FastAPI backend and React frontend.
+## Getting Started
 
-## Project Structure
+First, run the development server:
 
-```
-RESEARCH_WEBSITE/
-├── backend/                 # FastAPI application
-│   ├── api/
-│   │   └── endpoints/
-│   ├── models/
-│   ├── .env
-│   ├── config.py
-│   └── main.py
-├── frontend/                # React application
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── App.css
-│   │   ├── App.tsx
-│   │   ├── index.css
-│   │   └── main.tsx
-│   ├── public/
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vite.config.ts
-└── README.md
-```
-
-## Prerequisites
-
-- Python 3.8+
-- Node.js 18+
-- npm
-
-## Backend Setup (FastAPI)
-
-1. **Navigate to backend directory:**
-   ```bash
-   cd backend
-   ```
-
-2. **Create virtual environment:**
-   ```bash
-   python -m venv .venv
-   
-   # Activate virtual environment
-   # Windows:
-   venv\Scripts\activate
-   
-   # macOS/Linux:
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   ```
-
-4. **Environment setup:**
-   - Copy `.env.example` to `.env`
-   - Update environment variables as needed
-
-5. **Run the backend:**
-
-   ```bash
-   uvicorn main:app --reload --port 8000 # Preferred
-   ```
-
-   or
-
-    ```
-    python main.py
-    ```
-
-   Backend will be served at: http://localhost:8000
-   
-## Frontend Setup (React + Vite)
-
-1. **Navigate to frontend directory:**
-   ```bash
-   cd frontend
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Run the development server:**
-   ```bash
-   npm run dev
-   ```
-
-   Frontend will be served at: http://localhost:5173
-
-## Running Both Services
-
-**Terminal 1 - Backend:**
 ```bash
-cd backend
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-uvicorn main:app --reload --port 8000
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## API Endpoints
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-- `[GET, POST, PATCH, DELETE, PUT] - /` - Health check
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Environment Variables
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### Backend
+## Learn More
 
-### Frontend
+To learn more about Next.js, take a look at the following resources:
 
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## Development Notes
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-- Backend runs on port 8000
-- Frontend runs on port 5173
-- Hot reload is enabled for both services
+## Deploy on Vercel
 
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
