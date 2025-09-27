@@ -13,10 +13,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
+import { toast } from "sonner"
 interface UploadedFile {
   name: string
   size: number
@@ -130,7 +129,7 @@ export function ResumeUpload() {
       download.click()
     } else if (method === "clipboard") {
       await navigator.clipboard.writeText(data)
-
+      toast.info("Copied to Clipboard")
     }
   }
 
