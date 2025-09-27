@@ -53,7 +53,7 @@ export const extractWithChatGPT = async (content: string) => {
     }
 
 
-    return result.output_parsed 
+    return result 
   } catch (e) {
     console.log(e)
   }
