@@ -1,14 +1,13 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { join } from "path"
-import { existsSync } from "fs"
 
-function extractKeywords(text: string): {
+interface KeywordsInterface {
   skills: string[]
   experience: string[]
   education: string[]
   certifications: string[]
   languages: string[]
-} {
+}
+
+function extractKeywords(text: string): KeywordsInterface {
   const lowerText = text.toLowerCase()
 
   const skillKeywords = [
@@ -135,87 +134,41 @@ function extractKeywords(text: string): {
   }
 }
 
-async function parseFileContent(filepath: string, fileType: string): Promise<string> {
-  try {
-    if (fileType === "text/plain") {
-      return await readFile(filepath, "utf-8")
-    }
+export const extractWithProgramming = (content: string) => {
+  const keywords = extractKeywords(content)
 
-    if (fileType === "application/pdf") {
-      const buffer = await readFile(filepath)
-      return buffer.toString("utf-8").replace(/[^\x20-\x7E]/g, " ")
-    }
+  const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length
+  const hasContactInfo = /\b[\w._%+-]+@[\w.-]+\.[A-Z|a-z]{2,}\b/.test(content)
+  const hasPhoneNumber = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(content)
 
-    if (fileType.includes("word") || fileType.includes("document")) {
+  let gpas = []
+  let match;
+  const regex = /[gG][pP][aA]\s*[:\-]?\s*([0-4](?:\.\d{1,2})?)(?:\s*\/\s*([0-4](?:\.\d{1,2})?))?/g;
+  while ((match = regex.exec(content)) !== null) {
+    const numerator = match[1]
+    const denominator = match[2]
 
-      const buffer = await readFile(filepath)
-      return buffer.toString("utf-8").replace(/[^\x20-\x7E]/g, " ")
-    }
-
-    return ""
-  } catch (error) {
-    console.error("Error parsing file:", error)
-    return ""
+    const current = parseFloat(numerator)
+    const scale = denominator ? parseFloat(denominator) : 4.0
+    gpas.push(`${current}/${scale}`);
   }
-}
-import { extractWithChatGPT } from "./semanticParse"
-import { parseFileContent } from "./parseContent"
 
-export async function POST(request: NextRequest) {
-  try {
-    const { filename } = await request.json()
-
-    if (!filename) {
-      return NextResponse.json({ error: "No filename provided" }, { status: 400 })
-    }
-
-    const filepath = join(process.cwd(), "uploads", filename)
-
-    if (!existsSync(filepath)) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 })
-    }
-
-    const extension = filename.split(".").pop()?.toLowerCase()
-    let fileType = "text/plain"
-
-    if (extension === "pdf") {
-      fileType = "application/pdf"
-    } else if (extension === "doc") {
-      fileType = "application/msword"
-    } else if (extension === "docx") {
-      fileType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    }
-
-    const content = await parseFileContent(filepath, fileType)
-
-    const keywords = extractKeywords(content)
-
-    const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length
-    const hasContactInfo = /\b[\w._%+-]+@[\w.-]+\.[A-Z|a-z]{2,}\b/.test(content)
-    const hasPhoneNumber = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(content)
-
-    return NextResponse.json({
+  return {
       success: true,
-      filename,
       analysis: {
         wordCount,
         hasContactInfo,
         hasPhoneNumber,
         keywords,
+        hasGPA: gpas.length > 0 ? true : false,
         summary: {
           totalSkills: keywords.skills.length,
           totalExperience: keywords.experience.length,
           totalEducation: keywords.education.length,
+          gpas,
           totalCertifications: keywords.certifications.length,
           totalLanguages: keywords.languages.length,
         },
       },
-    })
-    const content = await parseFileContent(filepath, filename)
-    const data = await extractWithChatGPT(content)
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error("Error parsing resume:", error)
-    return NextResponse.json({ error: "Failed to parse resume" }, { status: 500 })
-  }
+    }
 }

@@ -4,84 +4,70 @@ import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, FileText, CheckCircle, AlertCircle, X, Search, Eye } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp } from "lucide-react"
+import type { Resume } from "@/app/api/parse/resumeSchema"
 import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface UploadedFile {
   name: string
   size: number
   type: string
   uploadedAt: string
-  filename?: string
+  filename: string
 }
 
-interface ParsedData {
-  success: boolean
-  filename: string
-  analysis: {
-    wordCount: number
-    hasContactInfo: boolean
-    hasPhoneNumber: boolean
-    keywords: {
-      skills: string[]
-      experience: string[]
-      education: string[]
-      certifications: string[]
-      languages: string[]
-    }
-    summary: {
-      totalSkills: number
-      totalExperience: number
-      totalEducation: number
-      totalCertifications: number
-      totalLanguages: number
-    }
-  }
+interface ParseResult {
+  details: Resume | null
+  missing: string[]
 }
 
 export function ResumeUpload() {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
-  const [parsedData, setParsedData] = useState<ParsedData | null>(null)
+  const [parseResult, setParseResult] = useState<ParseResult | null>(null)
   const [isParsing, setIsParsing] = useState(false)
-  const [showParsedData, setShowParsedData] = useState(false)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true)
     setUploadStatus("idle")
     setErrorMessage("")
-    setParsedData(null)
-    setShowParsedData(false)
+    setUploadedFile(null)
+    setParseResult(null)
 
     try {
-      for (const file of acceptedFiles) {
-        const formData = new FormData()
-        formData.append("file", file)
+      const file = acceptedFiles[0]
+      const formData = new FormData()
+      formData.append("file", file)
 
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        })
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
 
-        if (!response.ok) {
-          throw new Error("Upload failed")
-        }
-
-        const result = await response.json()
-
-        // Add to uploaded files list
-        const uploadedFile = {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          uploadedAt: new Date().toISOString(),
-          filename: result.filename,
-        }
-
-        setUploadedFiles((prev) => [...prev, uploadedFile])
+      if (!response.ok) {
+        throw new Error("Upload failed")
       }
+
+      const result = await response.json()
+
+      setUploadedFile({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        uploadedAt: new Date().toISOString(),
+        filename: result.filename,
+      })
 
       setUploadStatus("success")
     } catch (error) {
@@ -93,32 +79,6 @@ export function ResumeUpload() {
     }
   }, [])
 
-  const parseResume = async (filename: string) => {
-    setIsParsing(true)
-    try {
-      const response = await fetch("/api/parse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ filename }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Parsing failed")
-      }
-
-      const result = await response.json()
-      setParsedData(result)
-      setShowParsedData(true)
-    } catch (error) {
-      console.error("Parse error:", error)
-      setErrorMessage("Failed to parse resume. Please try again.")
-    } finally {
-      setIsParsing(false)
-    }
-  }
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -128,15 +88,55 @@ export function ResumeUpload() {
       "text/plain": [".txt"],
     },
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 10 * 1024 * 1024,
   })
 
-  const removeFile = (index: number) => {
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
-    if (parsedData && uploadedFiles[index]?.filename === parsedData.filename) {
-      setParsedData(null)
-      setShowParsedData(false)
+  const parseResume = async () => {
+    if (!uploadedFile) return
+
+    setIsParsing(true)
+
+    try {
+      const response = await fetch("/api/parse", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filename: uploadedFile.filename }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to parse")
+      }
+
+      const result = await response.json()
+      setParseResult(result)
+    } catch (error) {
+      console.error("Error parsing:", error)
+      setParseResult({ details: null, missing: ["Failed to parse"] })
+    } finally {
+      setIsParsing(false)
     }
+  }
+
+  const exportJSON = async (method: string) => {
+    if (!parseResult) return
+    const data = JSON.stringify(parseResult)
+
+    if (method === "download") {
+      const download = document.createElement("a")
+      download.href = `data:application/json;charset=utf-8,${JSON.stringify(data)}`
+      download.setAttribute("download", "resume.json")
+      download.click()
+    } else if (method === "clipboard") {
+      await navigator.clipboard.writeText(data)
+
+    }
+  }
+
+  const removeFile = () => {
+    setUploadedFile(null)
+    setParseResult(null)
   }
 
   const formatFileSize = (bytes: number) => {
@@ -145,6 +145,183 @@ export function ResumeUpload() {
     const sizes = ["Bytes", "KB", "MB", "GB"]
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
+  const renderParseResult = (result: ParseResult) => {
+    if (!result.details) {
+      return (
+        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-red-800 dark:text-red-200">Failed to parse resume</p>
+        </div>
+      )
+    }
+
+    const data = result.details
+    return (
+      <div className="space-y-6">
+        {data.basics && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-lg border-b pb-2">Basic Information</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p>
+                  <strong>Name:</strong> {data.basics.name || "N/A"}
+                </p>
+                <p>
+                  <strong>Email:</strong> {data.basics.email || "N/A"}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {data.basics.phone || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p>
+                  <strong>Location:</strong>{" "}
+                  {data.basics.location
+                    ? `${data.basics.location.city}, ${data.basics.location.state}, ${data.basics.location.country}`
+                    : "N/A"}
+                </p>
+                <p>
+                  <strong>LinkedIn:</strong> {data.basics.linkedin || "N/A"}
+                </p>
+                <p>
+                  <strong>GitHub:</strong> {data.basics.github || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {data.education && data.education.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-lg border-b pb-2">Education</h4>
+            {data.education.map((edu, idx: number) => (
+              <div key={idx} className="bg-muted/30 p-3 rounded-lg">
+                <p className="font-medium">
+                  {edu.degree} in {edu.field}
+                </p>
+                <p className="text-sm text-muted-foreground">{edu.school}</p>
+                <p className="text-sm">
+                  {edu.start_date} - {edu.end_date}
+                </p>
+                {edu.gpa && <p className="text-sm">GPA: {edu.gpa}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.skills && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-lg border-b pb-2">Skills</h4>
+            <div className="space-y-3">
+              {Object.entries(data.skills).map(
+                ([category, skills]) =>
+                  Array.isArray(skills) &&
+                  skills.length > 0 && (
+                    <div key={category}>
+                      <p className="text-sm font-medium text-muted-foreground mb-2 capitalize">
+                        {category.replace(/_/g, " ")}:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {skills.map((skill: string, idx: number) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ),
+              )}
+            </div>
+          </div>
+        )}
+
+        {data.experience && data.experience.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-lg border-b pb-2">Experience</h4>
+            {data.experience.map((exp, idx: number) => (
+              <div key={idx} className="bg-muted/30 p-3 rounded-lg space-y-2">
+                <div>
+                  <p className="font-medium">{exp.position}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {exp.company} • {exp.location}
+                  </p>
+                  <p className="text-sm">
+                    {exp.start_date} - {exp.end_date}
+                  </p>
+                </div>
+                {exp.responsibilities && exp.responsibilities.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Responsibilities:</p>
+                    <ul className="text-xs list-disc list-inside space-y-1">
+                      {exp.responsibilities.map((resp: string, i: number) => (
+                        <li key={i}>{resp}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {exp.technologies && exp.technologies.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {exp.technologies.map((tech: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {tech}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.projects && data.projects.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-lg border-b pb-2">Projects</h4>
+            {data.projects.map((project, idx: number) => (
+              <div key={idx} className="bg-muted/30 p-3 rounded-lg space-y-2">
+                <p className="font-medium">{project.name}</p>
+                <p className="text-sm">{project.description}</p>
+                {project.technologies && project.technologies.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {project.technologies.map((tech: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {tech}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.achievements && data.achievements.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-lg border-b pb-2">Achievements</h4>
+            {data.achievements.map((achievement, idx: number) => (
+              <div key={idx} className="bg-muted/30 p-3 rounded-lg">
+                <p className="font-medium">{achievement.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  {achievement.issuer} • {achievement.date}
+                </p>
+                <p className="text-sm">{achievement.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {result.missing && result.missing.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-lg border-b pb-2 text-orange-600">Missing Information</h4>
+            <ul className="list-disc list-inside text-sm text-orange-700 space-y-1">
+              {result.missing.map((item: string, idx: number) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -197,149 +374,71 @@ export function ResumeUpload() {
         </CardContent>
       </Card>
 
-      {uploadedFiles.length > 0 && (
+      {uploadedFile && (
         <Card>
           <CardHeader>
-            <CardTitle>Uploaded Files</CardTitle>
-            <CardDescription>Your uploaded resume files</CardDescription>
+            <CardTitle>Uploaded File & Parsing</CardTitle>
+            <CardDescription>Your uploaded resume file with AI-powered parsing</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {uploadedFiles.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <FileText className="h-8 w-8 text-blue-600" />
-                    <div>
-                      <p className="font-medium">{file.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatFileSize(file.size)} • Uploaded {new Date(file.uploadedAt).toLocaleString()}
-                      </p>
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <FileText className="h-8 w-8 text-blue-600" />
+                  <div>
+                    <p className="font-medium">{uploadedFile.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatFileSize(uploadedFile.size)} • Uploaded{" "}
+                      {new Date(uploadedFile.uploadedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeFile}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <Button onClick={parseResume} disabled={isParsing} variant="outline" size="sm">
+                    {isParsing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Rocket className="h-4 w-4 mr-2" fill="black" />
+                    )}
+                    Parse Resume
+                  </Button>
+                  {parseResult && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="border rounded-lg shadow-m px-2 font-medium text-sm flex gap-2 items-center hover:cursor-pointer hover:bg-primary/5 duration-150">
+                        <FileUp />
+                        Export as
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="hover:cursor-pointer">
+                        <DropdownMenuItem onClick={() => exportJSON("download")} className="hover:cursor-pointer">File</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+
+                {parseResult && (
+                  <div className="mt-4">
+                    <div className="border rounded-lg p-4 bg-muted/50">
+                      <h3 className="font-semibold mb-3 flex items-center">
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Parsing Results
+                      </h3>
+                      {renderParseResult(parseResult)}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => file.filename && parseResume(file.filename)}
-                      disabled={isParsing || !file.filename}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      {isParsing ? (
-                        <>
-                          <Search className="h-4 w-4 mr-1 animate-spin" />
-                          Parsing...
-                        </>
-                      ) : (
-                        <>
-                          <Search className="h-4 w-4 mr-1" />
-                          Parse
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(index)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {parsedData && showParsedData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Eye className="h-5 w-5" />
-              <span>Resume Analysis</span>
-            </CardTitle>
-            <CardDescription>Extracted keywords and analysis from {parsedData.filename}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* Summary Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{parsedData.analysis.summary.totalSkills}</div>
-                  <div className="text-sm text-muted-foreground">Skills</div>
-                </div>
-                <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{parsedData.analysis.summary.totalExperience}</div>
-                  <div className="text-sm text-muted-foreground">Experience</div>
-                </div>
-                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{parsedData.analysis.summary.totalEducation}</div>
-                  <div className="text-sm text-muted-foreground">Education</div>
-                </div>
-                <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">
-                    {parsedData.analysis.summary.totalCertifications}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Certifications</div>
-                </div>
-                <div className="text-center p-3 bg-teal-50 dark:bg-teal-950/20 rounded-lg">
-                  <div className="text-2xl font-bold text-teal-600">{parsedData.analysis.wordCount}</div>
-                  <div className="text-sm text-muted-foreground">Words</div>
-                </div>
-              </div>
-
-              {/* Keywords by Category */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {Object.entries(parsedData.analysis.keywords).map(
-                  ([category, keywords]) =>
-                    keywords.length > 0 && (
-                      <div key={category} className="space-y-2">
-                        <h4 className="font-semibold capitalize text-foreground">{category}</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {keywords.map((keyword, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
-                            >
-                              {keyword}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ),
                 )}
               </div>
-
-              {/* Contact Info Status */}
-              <div className="flex space-x-4 text-sm">
-                <div
-                  className={`flex items-center space-x-1 ${parsedData.analysis.hasContactInfo ? "text-green-600" : "text-red-600"}`}
-                >
-                  <div
-                    className={`w-2 h-2 rounded-full ${parsedData.analysis.hasContactInfo ? "bg-green-600" : "bg-red-600"}`}
-                  />
-                  <span>Email {parsedData.analysis.hasContactInfo ? "Found" : "Not Found"}</span>
-                </div>
-                <div
-                  className={`flex items-center space-x-1 ${parsedData.analysis.hasPhoneNumber ? "text-green-600" : "text-red-600"}`}
-                >
-                  <div
-                    className={`w-2 h-2 rounded-full ${parsedData.analysis.hasPhoneNumber ? "bg-green-600" : "bg-red-600"}`}
-                  />
-                  <span>Phone {parsedData.analysis.hasPhoneNumber ? "Found" : "Not Found"}</span>
-                </div>
-              </div>
-
-              {/* Raw JSON Data */}
-              <details className="mt-4">
-                <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
-                  View Raw JSON Data
-                </summary>
-                <pre className="mt-2 p-4 bg-muted rounded-lg text-xs overflow-auto">
-                  {JSON.stringify(parsedData, null, 2)}
-                </pre>
-              </details>
             </div>
           </CardContent>
         </Card>

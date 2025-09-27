@@ -42,25 +42,19 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Create uploads directory if it doesn't exist
     const uploadsDir = join(process.cwd(), "uploads")
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
     }
 
-    // Generate unique filename with timestamp
-    const timestamp = Date.now()
-    const fileExtension = file.name.split(".").pop()
-    const filename = `resume_${timestamp}.${fileExtension}`
-    const filepath = join(uploadsDir, filename)
+    const filepath = join(uploadsDir, file.name)
 
     // Write the file
     await writeFile(filepath, buffer)
 
     return NextResponse.json({
       message: "File uploaded successfully",
-      filename: filename,
-      originalName: file.name,
+      filename: file.name,
       size: file.size,
       type: file.type,
     })
