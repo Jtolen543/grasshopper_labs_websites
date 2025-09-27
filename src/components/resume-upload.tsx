@@ -311,6 +311,7 @@ export function ResumeUpload() {
                 )}
               </div>
 
+              {/* Contact Info Status */}
               <div className="flex space-x-4 text-sm">
                 <div
                   className={`flex items-center space-x-1 ${parsedData.analysis.hasContactInfo ? "text-green-600" : "text-red-600"}`}
@@ -330,6 +331,7 @@ export function ResumeUpload() {
                 </div>
               </div>
 
+              {/* Raw JSON Data */}
               <details className="mt-4">
                 <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
                   View Raw JSON Data
@@ -345,3 +347,4 @@ export function ResumeUpload() {
     </div>
   )
 }
+

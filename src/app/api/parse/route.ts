@@ -2,17 +2,14 @@ import { type NextRequest, NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
-"pdf-parser"
 
-interface KeywordsInterface {
+function extractKeywords(text: string): {
   skills: string[]
   experience: string[]
   education: string[]
   certifications: string[]
   languages: string[]
-}
-
-function extractKeywords(text: string): KeywordsInterface {
+} {
   const lowerText = text.toLowerCase()
 
   const skillKeywords = [
@@ -195,6 +192,7 @@ export async function POST(request: NextRequest) {
     const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length
     const hasContactInfo = /\b[\w._%+-]+@[\w.-]+\.[A-Z|a-z]{2,}\b/.test(content)
     const hasPhoneNumber = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(content)
+<<<<<<< HEAD
     let gpas = []
     let match;
     while ((match = /[gG][pP][aA]\s*[:\-]?\s*[0-4](\.\d{1,2})?(\s*[\/]\s*[0-4](\.\d{1,2})?)?/.exec(content)) !== null) {
@@ -206,6 +204,8 @@ export async function POST(request: NextRequest) {
         denominator: denominator ? parseFloat(denominator) : 4.0
       });
     }
+=======
+>>>>>>> dc0b530d20152303f5b51d93334c03b42c1d0b50
 
     return NextResponse.json({
       success: true,
@@ -215,7 +215,10 @@ export async function POST(request: NextRequest) {
         hasContactInfo,
         hasPhoneNumber,
         keywords,
+<<<<<<< HEAD
         hasGPA: gpas.length > 0 ? true : false,
+=======
+>>>>>>> dc0b530d20152303f5b51d93334c03b42c1d0b50
         summary: {
           totalSkills: keywords.skills.length,
           totalExperience: keywords.experience.length,
