@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
+import { StudentPreferences, type StudentPreferences as StudentPreferencesType } from "@/components/student-preferences"
+
 interface UploadedFile {
   name: string
   size: number
@@ -35,6 +37,8 @@ export function ResumeUpload() {
   const [errorMessage, setErrorMessage] = useState("")
   const [parseResult, setParseResult] = useState<ParseResult | null>(null)
   const [isParsing, setIsParsing] = useState(false)
+  const [showPreferences, setShowPreferences] = useState(false)
+  const [studentPreferences, setStudentPreferences] = useState<StudentPreferencesType | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true)
@@ -93,6 +97,8 @@ export function ResumeUpload() {
     if (!uploadedFile) return
 
     setIsParsing(true)
+    // Show preferences form immediately when parse button is clicked
+    setShowPreferences(true)
 
     try {
       const response = await fetch("/api/parse", {
@@ -135,6 +141,8 @@ export function ResumeUpload() {
   const removeFile = () => {
     setUploadedFile(null)
     setParseResult(null)
+    setShowPreferences(false)
+    setStudentPreferences(null)
   }
 
   const formatFileSize = (bytes: number) => {
@@ -143,6 +151,18 @@ export function ResumeUpload() {
     const sizes = ["Bytes", "KB", "MB", "GB"]
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
+  const handlePreferencesSubmit = (preferences: StudentPreferencesType) => {
+    setStudentPreferences(preferences)
+    setShowPreferences(false)
+    console.log("Student Preferences:", preferences)
+    // You can add additional logic here, such as saving to a database
+  }
+
+  const handlePreferencesSkip = () => {
+    setShowPreferences(false)
+    console.log("Student skipped preferences")
   }
 
   const renderParseResult = (result: ParseResult) => {
@@ -437,6 +457,47 @@ export function ResumeUpload() {
                   </div>
                 )}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {showPreferences && (
+        <StudentPreferences 
+          onSubmit={handlePreferencesSubmit} 
+          onSkip={handlePreferencesSkip}
+        />
+      )}
+
+      {studentPreferences && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Preferences Saved
+            </CardTitle>
+            <CardDescription>Your career preferences have been recorded</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Target Roles:</h4>
+              <div className="flex flex-wrap gap-1">
+                {studentPreferences.targetRoles.map((role, idx) => (
+                  <Badge key={idx} variant="secondary">{role}</Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Target Companies:</h4>
+              <div className="flex flex-wrap gap-1">
+                {studentPreferences.targetCompanies.map((company, idx) => (
+                  <Badge key={idx} variant="outline">{company}</Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Technical Interview Level:</h4>
+              <Badge variant="default" className="text-lg">{studentPreferences.technicalInterviewLevel}/10</Badge>
             </div>
           </CardContent>
         </Card>
