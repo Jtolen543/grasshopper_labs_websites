@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
+import Link from "next/link"
 interface UploadedFile {
   name: string
   size: number
@@ -109,6 +110,7 @@ export function ResumeUpload() {
 
       const result = await response.json()
       setParseResult(result)
+      toast.success("Successfully parsed results")
     } catch (error) {
       console.error("Error parsing:", error)
       setParseResult({ details: null, missing: ["Failed to parse"] })
@@ -402,8 +404,8 @@ export function ResumeUpload() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex gap-4">
-                  <Button onClick={parseResume} disabled={isParsing} variant="outline" size="sm">
+                <div className="flex gap-4 items-center">
+                  <Button onClick={parseResume} disabled={isParsing}>
                     {isParsing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
@@ -412,20 +414,25 @@ export function ResumeUpload() {
                     Parse Resume
                   </Button>
                   {parseResult && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="border rounded-lg shadow-m px-2 font-medium text-sm flex gap-2 items-center hover:cursor-pointer hover:bg-primary/5 duration-150">
-                        <FileUp />
-                        Export as
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="hover:cursor-pointer">
-                        <DropdownMenuItem onClick={() => exportJSON("download")} className="hover:cursor-pointer">File</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-centers gap-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button>
+                            <FileUp />
+                            Export as
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="hover:cursor-pointer">
+                          <DropdownMenuItem onClick={() => exportJSON("download")} className="hover:cursor-pointer">File</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button><Link href="/questionnaire">Fill out questionnaire</Link></Button>
+                    </div>
                   )}
                 </div>
 
-                {parseResult && (
+                {/* {parseResult && (
                   <div className="mt-4">
                     <div className="border rounded-lg p-4 bg-muted/50">
                       <h3 className="font-semibold mb-3 flex items-center">
@@ -435,7 +442,7 @@ export function ResumeUpload() {
                       {renderParseResult(parseResult)}
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           </CardContent>
