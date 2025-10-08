@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
