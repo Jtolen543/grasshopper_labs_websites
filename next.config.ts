@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["pdf-parse"],
+  serverExternalPackages: ["pdf-parse", "@xenova/transformers"],
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'sharp$': false,
+      'onnxruntime-node$': false,
+    }
+    return config
   }
 };
 
