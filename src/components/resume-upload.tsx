@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { StudentPreferences, type StudentPreferences as StudentPreferencesType } from "@/components/student-preferences"
+import { ResumeVerification } from "@/components/resume-verification"
 
 interface UploadedFile {
   name: string
@@ -37,6 +38,8 @@ export function ResumeUpload() {
   const [errorMessage, setErrorMessage] = useState("")
   const [parseResult, setParseResult] = useState<ParseResult | null>(null)
   const [isParsing, setIsParsing] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [verifiedData, setVerifiedData] = useState<Resume | null>(null)
   const [showPreferences, setShowPreferences] = useState(false)
   const [studentPreferences, setStudentPreferences] = useState<StudentPreferencesType | null>(null)
 
@@ -126,8 +129,9 @@ export function ResumeUpload() {
       console.log(JSON.stringify(result, null, 2))
       console.log("==========================================")
       
-      // Show success toast
+      // Show verification form after successful parse
       if (result.details) {
+        setShowVerification(true)
         toast.success(`Resume parsed successfully using ${method === "ai" ? "AI" : "Regex"} method!`)
       }
     } catch (error) {
@@ -157,8 +161,22 @@ export function ResumeUpload() {
   const removeFile = () => {
     setUploadedFile(null)
     setParseResult(null)
+    setShowVerification(false)
+    setVerifiedData(null)
     setShowPreferences(false)
     setStudentPreferences(null)
+  }
+
+  const handleVerificationConfirm = (data: Resume) => {
+    setVerifiedData(data)
+    setShowVerification(false)
+    setShowPreferences(true)
+    toast.success("Resume data confirmed!")
+  }
+
+  const handleVerificationCancel = () => {
+    setShowVerification(false)
+    toast.info("Verification cancelled")
   }
 
   const formatFileSize = (bytes: number) => {
@@ -496,7 +514,16 @@ export function ResumeUpload() {
         </Card>
       )}
 
-      {showPreferences && (
+      {showVerification && parseResult?.details && (
+        <ResumeVerification
+          parsedData={parseResult.details}
+          onConfirm={handleVerificationConfirm}
+          onCancel={handleVerificationCancel}
+          open={showVerification}
+        />
+      )}
+
+      {showPreferences && verifiedData && (
         <StudentPreferences 
           onSubmit={handlePreferencesSubmit} 
           onSkip={handlePreferencesSkip}
@@ -508,9 +535,9 @@ export function ResumeUpload() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              Preferences Saved
+              All Done!
             </CardTitle>
-            <CardDescription>Your career preferences have been recorded</CardDescription>
+            <CardDescription>Your resume and preferences have been saved</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
