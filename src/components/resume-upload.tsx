@@ -93,7 +93,7 @@ export function ResumeUpload() {
     maxSize: 10 * 1024 * 1024,
   })
 
-  const parseResume = async () => {
+  const parseResume = async (method: "ai" | "regex" = "ai") => {
     if (!uploadedFile) return
 
     setIsParsing(true)
@@ -106,7 +106,10 @@ export function ResumeUpload() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ filename: uploadedFile.filename }),
+        body: JSON.stringify({ 
+          filename: uploadedFile.filename,
+          method: method 
+        }),
       })
 
       if (!response.ok) {
@@ -115,9 +118,22 @@ export function ResumeUpload() {
 
       const result = await response.json()
       setParseResult(result)
+      
+      // Log the full JSON output to console for debugging
+      console.log("==========================================")
+      console.log(`PARSED RESUME OUTPUT (${method.toUpperCase()} METHOD):`)
+      console.log("==========================================")
+      console.log(JSON.stringify(result, null, 2))
+      console.log("==========================================")
+      
+      // Show success toast
+      if (result.details) {
+        toast.success(`Resume parsed successfully using ${method === "ai" ? "AI" : "Regex"} method!`)
+      }
     } catch (error) {
       console.error("Error parsing:", error)
       setParseResult({ details: null, missing: ["Failed to parse"] })
+      toast.error("Failed to parse resume")
     } finally {
       setIsParsing(false)
     }
@@ -422,14 +438,32 @@ export function ResumeUpload() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex gap-4">
-                  <Button onClick={parseResume} disabled={isParsing} variant="outline" size="sm">
+                <div className="flex gap-4 flex-wrap">
+                  <Button 
+                    onClick={() => parseResume("ai")} 
+                    disabled={isParsing} 
+                    variant="default" 
+                    size="sm"
+                  >
                     {isParsing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      <Rocket className="h-4 w-4 mr-2" fill="black" />
+                      <Rocket className="h-4 w-4 mr-2" />
                     )}
-                    Parse Resume
+                    Parse with AI
+                  </Button>
+                  <Button 
+                    onClick={() => parseResume("regex")} 
+                    disabled={isParsing} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    {isParsing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4 mr-2" />
+                    )}
+                    Parse with Regex
                   </Button>
                   {parseResult && (
                     <DropdownMenu>
