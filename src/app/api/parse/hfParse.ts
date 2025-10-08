@@ -101,7 +101,7 @@ function extractEducation(text: string) {
   const educationSection = findSection(text, ['education', 'academic']);
   const lines = educationSection.split('\n').filter(line => line.trim().length > 0);
   
-  const education = [];
+  const education: any[] = [];
   let currentEdu: any = null;
 
   for (const line of lines) {
@@ -197,7 +197,7 @@ function extractExperience(text: string) {
   const experienceSection = findSection(text, ['experience', 'work experience', 'employment']);
   const lines = experienceSection.split('\n').filter(line => line.trim().length > 0);
   
-  const experience = [];
+  const experience: any[] = [];
   let currentExp: any = null;
 
   for (const line of lines) {
@@ -239,7 +239,7 @@ function extractProjects(text: string) {
   const projectsSection = findSection(text, ['projects', 'personal projects', 'project experience']);
   const lines = projectsSection.split('\n').filter(line => line.trim().length > 0);
   
-  const projects = [];
+  const projects: any[] = [];
   let currentProject: any = null;
 
   for (const line of lines) {
