@@ -2,14 +2,12 @@ import { type NextRequest, NextResponse } from "next/server"
 import { join } from "path"
 import { existsSync } from "fs"
 import { extractWithChatGPT } from "./semanticParse"
-import { extractWithProgramming } from "./manualParse"
+import { extractWithRegex } from "./regexParse"
 import { parseFileContent } from "./parseContent"
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const filename = body.filename
-    const method = body.manual ? "Programming" : "LLM"
+    const { filename, method } = await request.json()
 
     if (!filename) {
       return NextResponse.json({ error: "No filename provided" }, { status: 400 })
@@ -22,10 +20,15 @@ export async function POST(request: NextRequest) {
     }
 
     const content = await parseFileContent(filepath, filename)
-    let data;
-    if (method === "Programming") data = extractWithProgramming(content)
-    else data = await extractWithChatGPT(content)
-
+    
+    // Choose parsing method: 'regex' or 'ai' (default)
+    let data
+    if (method === "regex") {
+      data = extractWithRegex(content)
+    } else {
+      data = await extractWithChatGPT(content)
+    }
+    
     return NextResponse.json(data)
   } catch (error) {
     console.error("Error parsing resume:", error)

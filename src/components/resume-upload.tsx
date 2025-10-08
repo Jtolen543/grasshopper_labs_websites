@@ -15,7 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-import Link from "next/link"
+import { StudentPreferences, type StudentPreferences as StudentPreferencesType } from "@/components/student-preferences"
+import { ResumeVerification } from "@/components/resume-verification"
+
 interface UploadedFile {
   name: string
   size: number
@@ -36,6 +38,10 @@ export function ResumeUpload() {
   const [errorMessage, setErrorMessage] = useState("")
   const [parseResult, setParseResult] = useState<ParseResult | null>(null)
   const [isParsing, setIsParsing] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [verifiedData, setVerifiedData] = useState<Resume | null>(null)
+  const [showPreferences, setShowPreferences] = useState(false)
+  const [studentPreferences, setStudentPreferences] = useState<StudentPreferencesType | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true)
@@ -90,10 +96,12 @@ export function ResumeUpload() {
     maxSize: 10 * 1024 * 1024,
   })
 
-  const parseResume = async () => {
+  const parseResume = async (method: "ai" | "regex" = "ai") => {
     if (!uploadedFile) return
 
     setIsParsing(true)
+    // Show preferences form immediately when parse button is clicked
+    setShowPreferences(true)
 
     try {
       const response = await fetch("/api/parse", {
@@ -101,7 +109,10 @@ export function ResumeUpload() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ filename: uploadedFile.filename }),
+        body: JSON.stringify({ 
+          filename: uploadedFile.filename,
+          method: method 
+        }),
       })
 
       if (!response.ok) {
@@ -110,10 +121,23 @@ export function ResumeUpload() {
 
       const result = await response.json()
       setParseResult(result)
-      toast.success("Successfully parsed results")
+      
+      // Log the full JSON output to console for debugging
+      console.log("==========================================")
+      console.log(`PARSED RESUME OUTPUT (${method.toUpperCase()} METHOD):`)
+      console.log("==========================================")
+      console.log(JSON.stringify(result, null, 2))
+      console.log("==========================================")
+      
+      // Show verification form after successful parse
+      if (result.details) {
+        setShowVerification(true)
+        toast.success(`Resume parsed successfully using ${method === "ai" ? "AI" : "Regex"} method!`)
+      }
     } catch (error) {
       console.error("Error parsing:", error)
       setParseResult({ details: null, missing: ["Failed to parse"] })
+      toast.error("Failed to parse resume")
     } finally {
       setIsParsing(false)
     }
@@ -137,6 +161,22 @@ export function ResumeUpload() {
   const removeFile = () => {
     setUploadedFile(null)
     setParseResult(null)
+    setShowVerification(false)
+    setVerifiedData(null)
+    setShowPreferences(false)
+    setStudentPreferences(null)
+  }
+
+  const handleVerificationConfirm = (data: Resume) => {
+    setVerifiedData(data)
+    setShowVerification(false)
+    setShowPreferences(true)
+    toast.success("Resume data confirmed!")
+  }
+
+  const handleVerificationCancel = () => {
+    setShowVerification(false)
+    toast.info("Verification cancelled")
   }
 
   const formatFileSize = (bytes: number) => {
@@ -145,6 +185,18 @@ export function ResumeUpload() {
     const sizes = ["Bytes", "KB", "MB", "GB"]
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
+  const handlePreferencesSubmit = (preferences: StudentPreferencesType) => {
+    setStudentPreferences(preferences)
+    setShowPreferences(false)
+    console.log("Student Preferences:", preferences)
+    // You can add additional logic here, such as saving to a database
+  }
+
+  const handlePreferencesSkip = () => {
+    setShowPreferences(false)
+    console.log("Student skipped preferences")
   }
 
   const renderParseResult = (result: ParseResult) => {
@@ -404,14 +456,32 @@ export function ResumeUpload() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex gap-4 items-center">
-                  <Button onClick={parseResume} disabled={isParsing}>
+                <div className="flex gap-4 flex-wrap">
+                  <Button 
+                    onClick={() => parseResume("ai")} 
+                    disabled={isParsing} 
+                    variant="default" 
+                    size="sm"
+                  >
                     {isParsing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      <Rocket className="h-4 w-4 mr-2" fill="black" />
+                      <Rocket className="h-4 w-4 mr-2" />
                     )}
-                    Parse Resume
+                    Parse with AI
+                  </Button>
+                  <Button 
+                    onClick={() => parseResume("regex")} 
+                    disabled={isParsing} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    {isParsing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4 mr-2" />
+                    )}
+                    Parse with Regex
                   </Button>
                   {parseResult && (
                     <div className="flex items-centers gap-4">
@@ -444,6 +514,56 @@ export function ResumeUpload() {
                   </div>
                 )} */}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {showVerification && parseResult?.details && (
+        <ResumeVerification
+          parsedData={parseResult.details}
+          onConfirm={handleVerificationConfirm}
+          onCancel={handleVerificationCancel}
+          open={showVerification}
+        />
+      )}
+
+      {showPreferences && verifiedData && (
+        <StudentPreferences 
+          onSubmit={handlePreferencesSubmit} 
+          onSkip={handlePreferencesSkip}
+        />
+      )}
+
+      {studentPreferences && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              All Done!
+            </CardTitle>
+            <CardDescription>Your resume and preferences have been saved</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Target Roles:</h4>
+              <div className="flex flex-wrap gap-1">
+                {studentPreferences.targetRoles.map((role, idx) => (
+                  <Badge key={idx} variant="secondary">{role}</Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Target Companies:</h4>
+              <div className="flex flex-wrap gap-1">
+                {studentPreferences.targetCompanies.map((company, idx) => (
+                  <Badge key={idx} variant="outline">{company}</Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-2">Technical Interview Level:</h4>
+              <Badge variant="default" className="text-lg">{studentPreferences.technicalInterviewLevel}/10</Badge>
             </div>
           </CardContent>
         </Card>
