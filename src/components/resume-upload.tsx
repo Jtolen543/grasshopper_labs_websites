@@ -484,20 +484,25 @@ export function ResumeUpload() {
                     Parse with Regex
                   </Button>
                   {parseResult && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="border rounded-lg shadow-m px-2 font-medium text-sm flex gap-2 items-center hover:cursor-pointer hover:bg-primary/5 duration-150">
-                        <FileUp />
-                        Export as
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="hover:cursor-pointer">
-                        <DropdownMenuItem onClick={() => exportJSON("download")} className="hover:cursor-pointer">File</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-centers gap-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button>
+                            <FileUp />
+                            Export as
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="hover:cursor-pointer">
+                          <DropdownMenuItem onClick={() => exportJSON("download")} className="hover:cursor-pointer">File</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button><Link href="/questionnaire">Fill out questionnaire</Link></Button>
+                    </div>
                   )}
                 </div>
 
-                {parseResult && (
+                {/* {parseResult && (
                   <div className="mt-4">
                     <div className="border rounded-lg p-4 bg-muted/50">
                       <h3 className="font-semibold mb-3 flex items-center">
@@ -507,7 +512,7 @@ export function ResumeUpload() {
                       {renderParseResult(parseResult)}
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           </CardContent>
