@@ -1,15 +1,53 @@
 ﻿import type { Resume } from './resumeSchema';
+import { pipeline } from '@xenova/transformers';
 
-// Enhanced regex-based parser with sophisticated section detection and pattern matching
-// Uses rule-based extraction to identify resume sections and extract structured data
+// Real HuggingFace NER-based resume parser using machine learning models
+// Uses BERT-based Named Entity Recognition to identify entities and structure them
 
-// Helper to find sections in text
+let nerPipeline: any = null;
+
+async function getNERPipeline() {
+  if (!nerPipeline) {
+    console.log('Loading HuggingFace NER model (Xenova/bert-base-NER)...');
+    nerPipeline = await pipeline('token-classification', 'Xenova/bert-base-NER');
+    console.log('NER model loaded successfully');
+  }
+  return nerPipeline;
+}
+
+// Aggregate consecutive entities
+function aggregateEntities(nerResults: any[]): any[] {
+  const aggregated: any[] = [];
+  let current: any = null;
+
+  for (const result of nerResults) {
+    const entity = result.entity.replace(/^[BI]-/, '');
+    
+    if (result.entity.startsWith('B-') || !current || current.entity !== entity) {
+      if (current) aggregated.push(current);
+      current = {
+        entity,
+        word: result.word,
+        score: result.score,
+        start: result.start,
+        end: result.end
+      };
+    } else {
+      current.word += result.word.startsWith('##') ? result.word.substring(2) : ' ' + result.word;
+      current.end = result.end;
+      current.score = Math.max(current.score, result.score);
+    }
+  }
+  
+  if (current) aggregated.push(current);
+  return aggregated;
+}
+
 function findSection(text: string, keywords: string[]): string {
   const lines = text.split('\n');
   let sectionStart = -1;
   let sectionEnd = lines.length;
 
-  // Find section start
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].toLowerCase();
     if (keywords.some(keyword => line.includes(keyword))) {
@@ -20,7 +58,6 @@ function findSection(text: string, keywords: string[]): string {
 
   if (sectionStart === -1) return '';
 
-  // Find section end (next section header)
   const sectionHeaders = [
     'education', 'experience', 'work', 'skills', 'projects', 
     'achievements', 'certifications', 'publications', 'activities',
@@ -38,82 +75,45 @@ function findSection(text: string, keywords: string[]): string {
   return lines.slice(sectionStart + 1, sectionEnd).join('\n');
 }
 
-// Extract email using regex
 function extractEmail(text: string): string {
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const matches = text.match(emailRegex);
   return matches ? matches[0] : '';
 }
 
-// Extract phone using regex
 function extractPhone(text: string): string {
   const phoneRegex = /(\+\d{1,3}[\s-]?)?(\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}/g;
   const matches = text.match(phoneRegex);
   return matches ? matches[0] : '';
 }
 
-// Extract LinkedIn
 function extractLinkedIn(text: string): string {
   const linkedinRegex = /(linkedin\.com\/in\/[a-zA-Z0-9-]+)/gi;
   const matches = text.match(linkedinRegex);
   return matches ? 'https://' + matches[0] : '';
 }
 
-// Extract GitHub
 function extractGitHub(text: string): string {
   const githubRegex = /(github\.com\/[a-zA-Z0-9-]+)/gi;
   const matches = text.match(githubRegex);
   return matches ? 'https://' + matches[0] : '';
 }
 
-// Extract name from first few lines
-function extractName(text: string): string {
-  const lines = text.split('\n').filter(line => line.trim().length > 0);
-  // Usually name is in first 3 lines and is the longest non-email line
-  for (let i = 0; i < Math.min(3, lines.length); i++) {
-    const line = lines[i].trim();
-    if (!line.includes('@') && line.length > 5 && line.length < 50) {
-      return line;
-    }
-  }
-  return lines[0]?.trim() || '';
-}
-
-// Extract location
-function extractLocation(text: string): { city: string; state: string; country: string } {
-  const locationRegex = /([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*([A-Z]{2})/;
-  const match = text.match(locationRegex);
-  
-  if (match) {
-    return {
-      city: match[1] || '',
-      state: match[2] || '',
-      country: 'USA'
-    };
-  }
-  
-  return { city: '', state: '', country: '' };
-}
-
-// Helper function to extract GPA from text
 function extractGPA(text: string): number {
   const lowerText = text.toLowerCase();
   
-  // Pattern 1: "GPA: 3.8" or "GPA 3.8" or "G.P.A: 3.8"
   const gpaPattern1 = /(?:gpa|g\.p\.a\.?)[:\s]+(\d\.\d+)/i;
   const match1 = text.match(gpaPattern1);
   if (match1) {
     return parseFloat(match1[1]);
   }
   
-  // Pattern 2: "3.8/4.0" or "3.75 / 4.0" (GPA with scale)
   const gpaPattern2 = /(\d\.\d+)\s*\/\s*(\d\.\d+)/;
   const match2 = text.match(gpaPattern2);
   if (match2 && lowerText.includes('gpa')) {
     return parseFloat(match2[1]);
   }
   
-  // Pattern 3: Just "3.8" on a line that mentions GPA
   if (lowerText.includes('gpa') || lowerText.includes('grade')) {
     const numberMatch = text.match(/(\d\.\d+)/);
     if (numberMatch) {
@@ -127,18 +127,89 @@ function extractGPA(text: string): number {
   return 0;
 }
 
-// Extract education
-function extractEducation(text: string) {
-  const educationSection = findSection(text, ['education', 'academic']);
-  const lines = educationSection.split('\n').filter(line => line.trim().length > 0);
+// Extract name using NER to find PERSON entities
+function extractNameWithNER(text: string, entities: any[]): string {
+  const personEntities = entities.filter((e: any) => 
+    e.entity === 'PER' && 
+    e.start < 300 &&
+    e.score > 0.8
+  );
   
+  if (personEntities.length > 0) {
+    return personEntities[0].word.trim();
+  }
+  
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  for (let i = 0; i < Math.min(3, lines.length); i++) {
+    const line = lines[i].trim();
+    if (!line.includes('@') && line.length > 5 && line.length < 50) {
+      return line;
+    }
+  }
+  
+  return lines[0]?.trim() || '';
+}
+
+// Extract location using NER to find LOCATION entities
+function extractLocationWithNER(text: string, entities: any[]): { city: string; state: string; country: string } {
+  const locationEntities = entities.filter((e: any) => 
+    e.entity === 'LOC' && 
+    e.start < 500 &&
+    e.score > 0.7
+  );
+  
+  if (locationEntities.length > 0) {
+    const location = locationEntities[0].word.trim();
+    const match = location.match(/([A-Z][a-z]+),\s*([A-Z]{2})/);
+    if (match) {
+      return {
+        city: match[1],
+        state: match[2],
+        country: 'USA'
+      };
+    }
+    return {
+      city: location,
+      state: '',
+      country: ''
+    };
+  }
+  
+  const locationRegex = /([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*([A-Z]{2})/;
+  const match = text.match(locationRegex);
+  if (match) {
+    return {
+      city: match[1] || '',
+      state: match[2] || '',
+      country: 'USA'
+    };
+  }
+  
+  return { city: '', state: '', country: '' };
+}
+
+// Extract education using NER to identify organizations (schools)
+function extractEducationWithNER(text: string, entities: any[]) {
+  const educationSection = findSection(text, ['education', 'academic']);
+  if (!educationSection) return [];
+  
+  const lines = educationSection.split('\n').filter(line => line.trim().length > 0);
   const education: any[] = [];
   let currentEdu: any = null;
+  
+  const orgEntities = entities.filter((e: any) => 
+    e.entity === 'ORG' && 
+    educationSection.includes(e.word) &&
+    e.score > 0.7
+  );
 
   for (const line of lines) {
     const trimmed = line.trim();
     
-    if (/university|college|institute|school/i.test(trimmed)) {
+    const hasOrgEntity = orgEntities.some(org => trimmed.includes(org.word));
+    const hasSchoolKeyword = /university|college|institute|school/i.test(trimmed);
+    
+    if (hasOrgEntity || hasSchoolKeyword) {
       if (currentEdu) education.push(currentEdu);
       currentEdu = {
         school: trimmed,
@@ -169,15 +240,14 @@ function extractEducation(text: string) {
   return education;
 }
 
-// Extract skills
 function extractSkills(text: string) {
   const skillsSection = findSection(text, ['skills', 'technical skills', 'technologies']);
   
-  const languageKeywords = ['python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'php', 'sql'];
-  const frameworkKeywords = ['react', 'angular', 'vue', 'next.js', 'express', 'django', 'flask', 'spring', 'rails', 'laravel', 'fastapi'];
-  const databaseKeywords = ['mongodb', 'postgresql', 'mysql', 'redis', 'dynamodb', 'cassandra', 'oracle', 'sqlite'];
+  const languageKeywords = ['python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'php', 'sql', 'r', 'matlab'];
+  const frameworkKeywords = ['react', 'angular', 'vue', 'next.js', 'node.js', 'express', 'django', 'flask', 'spring', 'rails', 'laravel', 'fastapi', '.net'];
+  const databaseKeywords = ['mongodb', 'postgresql', 'mysql', 'redis', 'dynamodb', 'cassandra', 'oracle', 'sqlite', 'firebase'];
   const cloudKeywords = ['aws', 'azure', 'gcp', 'google cloud', 'heroku', 'vercel', 'netlify'];
-  const devopsKeywords = ['docker', 'kubernetes', 'jenkins', 'gitlab', 'github actions', 'terraform', 'ansible'];
+  const devopsKeywords = ['docker', 'kubernetes', 'jenkins', 'gitlab', 'github actions', 'terraform', 'ansible', 'ci/cd'];
   
   const skills = {
     programming_languages: [] as string[],
@@ -224,18 +294,27 @@ function extractSkills(text: string) {
   return skills;
 }
 
-// Extract experience
-function extractExperience(text: string) {
+function extractExperienceWithNER(text: string, entities: any[]) {
   const experienceSection = findSection(text, ['experience', 'work experience', 'employment']);
-  const lines = experienceSection.split('\n').filter(line => line.trim().length > 0);
+  if (!experienceSection) return [];
   
+  const lines = experienceSection.split('\n').filter(line => line.trim().length > 0);
   const experience: any[] = [];
   let currentExp: any = null;
+  
+  const orgEntities = entities.filter((e: any) => 
+    e.entity === 'ORG' && 
+    experienceSection.includes(e.word) &&
+    e.score > 0.7
+  );
 
   for (const line of lines) {
     const trimmed = line.trim();
     
-    if (/^[A-Z][a-zA-Z\s&,]+$/.test(trimmed) && trimmed.length < 60) {
+    const hasOrgEntity = orgEntities.some(org => trimmed.includes(org.word));
+    const looksLikeCompany = /^[A-Z][a-zA-Z\s&,]+$/.test(trimmed) && trimmed.length < 60;
+    
+    if (hasOrgEntity || looksLikeCompany) {
       if (currentExp) experience.push(currentExp);
       currentExp = {
         company: trimmed,
@@ -265,11 +344,11 @@ function extractExperience(text: string) {
   return experience;
 }
 
-// Extract projects
 function extractProjects(text: string) {
   const projectsSection = findSection(text, ['projects', 'personal projects', 'project experience']);
-  const lines = projectsSection.split('\n').filter(line => line.trim().length > 0);
+  if (!projectsSection) return [];
   
+  const lines = projectsSection.split('\n').filter(line => line.trim().length > 0);
   const projects: any[] = [];
   let currentProject: any = null;
 
@@ -309,21 +388,43 @@ function extractProjects(text: string) {
   return projects;
 }
 
-export function extractWithRegex(content: string): { details: Resume | null; missing: string[] } {
+export async function extractWithHuggingFace(content: string): Promise<{ details: Resume | null; missing: string[] }> {
   try {
-    console.log('Starting enhanced regex extraction...');
+    console.log('Starting HuggingFace NER extraction with BERT model...');
+    console.log('Text length:', content.length);
     
-    const name = extractName(content);
+    const ner = await getNERPipeline();
+    
+    const textToAnalyze = content.slice(0, 5000);
+    console.log('Running NER model on text...');
+    const nerResults = await ner(textToAnalyze);
+    console.log(`Found ${nerResults.length} entity tokens`);
+    
+    const entities = aggregateEntities(nerResults);
+    console.log(`Aggregated into ${entities.length} entities`);
+    entities.slice(0, 10).forEach((e: any) => {
+      console.log(`  - ${e.entity}: "${e.word}" (score: ${e.score.toFixed(2)})`);
+    });
+    
+    const name = extractNameWithNER(content, entities);
     const email = extractEmail(content);
     const phone = extractPhone(content);
-    const location = extractLocation(content);
+    const location = extractLocationWithNER(content, entities);
     const linkedin = extractLinkedIn(content);
     const github = extractGitHub(content);
 
-    const education = extractEducation(content);
+    console.log('Extracted basics with NER:', { name, email, phone, location });
+
+    const education = extractEducationWithNER(content, entities);
     const skills = extractSkills(content);
-    const experience = extractExperience(content);
+    const experience = extractExperienceWithNER(content, entities);
     const projects = extractProjects(content);
+
+    console.log('Extracted sections:', { 
+      education: education.length, 
+      experience: experience.length, 
+      projects: projects.length 
+    });
 
     const resume: Resume = {
       basics: {
@@ -345,7 +446,7 @@ export function extractWithRegex(content: string): { details: Resume | null; mis
       extracurriculars: []
     };
 
-    console.log('Enhanced regex extraction complete');
+    console.log('HuggingFace NER extraction complete');
     
     const missing: string[] = [];
     if (!name) missing.push('name');
@@ -354,10 +455,10 @@ export function extractWithRegex(content: string): { details: Resume | null; mis
     
     return { details: resume, missing };
   } catch (error) {
-    console.error('Error in regex extraction:', error);
+    console.error('Error in HuggingFace extraction:', error);
     return { 
       details: null, 
-      missing: [`Regex parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`] 
+      missing: [`HuggingFace parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`] 
     };
   }
 }

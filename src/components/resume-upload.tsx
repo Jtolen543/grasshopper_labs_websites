@@ -5,7 +5,7 @@ import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Sparkles } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -97,7 +97,7 @@ export function ResumeUpload() {
     maxSize: 10 * 1024 * 1024,
   })
 
-  const parseResume = async (method: "ai" | "regex" = "ai") => {
+  const parseResume = async (method: "ai" | "regex" | "huggingface" = "ai") => {
     if (!uploadedFile) return
 
     setIsParsing(true)
@@ -116,11 +116,13 @@ export function ResumeUpload() {
         }),
       })
 
+      const result = await response.json()
+      
       if (!response.ok) {
-        throw new Error("Failed to parse")
+        console.error("API Error:", result)
+        throw new Error(result.message || result.error || "Failed to parse")
       }
 
-      const result = await response.json()
       setParseResult(result)
       
       // Log the full JSON output to console for debugging
@@ -133,12 +135,14 @@ export function ResumeUpload() {
       // Show verification form after successful parse
       if (result.details) {
         setShowVerification(true)
-        toast.success(`Resume parsed successfully using ${method === "ai" ? "AI" : "Regex"} method!`)
+        const methodName = method === "ai" ? "AI" : method === "huggingface" ? "HuggingFace" : "Regex"
+        toast.success(`Resume parsed successfully using ${methodName} method!`)
       }
     } catch (error) {
       console.error("Error parsing:", error)
       setParseResult({ details: null, missing: ["Failed to parse"] })
-      toast.error("Failed to parse resume")
+      const errorMsg = error instanceof Error ? error.message : "Failed to parse resume"
+      toast.error(errorMsg)
     } finally {
       setIsParsing(false)
     }
@@ -470,6 +474,19 @@ export function ResumeUpload() {
                       <Rocket className="h-4 w-4 mr-2" />
                     )}
                     Parse with AI
+                  </Button>
+                  <Button 
+                    onClick={() => parseResume("huggingface")} 
+                    disabled={isParsing} 
+                    variant="secondary" 
+                    size="sm"
+                  >
+                    {isParsing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    Parse with HuggingFace
                   </Button>
                   <Button 
                     onClick={() => parseResume("regex")} 

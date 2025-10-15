@@ -290,30 +290,74 @@ export function ResumeVerification({ parsedData, onConfirm, onCancel, open }: Re
                     {isEditing ? (
                       <input
                         type="text"
-                        value={`${edu.degree} in ${edu.field}`}
-                        onChange={(e) => {
-                          const parts = e.target.value.split(" in ")
-                          handleEducationChange(idx, "degree", parts[0])
-                          handleEducationChange(idx, "field", parts[1] || "")
-                        }}
+                        value={edu.degree}
+                        onChange={(e) => handleEducationChange(idx, "degree", e.target.value)}
                         className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="e.g., Bachelor of Science"
                       />
                     ) : (
-                      <p className="mt-1">{edu.degree} in {edu.field}</p>
+                      <p className="mt-1">{edu.degree || "N/A"}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Field of Study</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={edu.field}
+                        onChange={(e) => handleEducationChange(idx, "field", e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="e.g., Computer Science"
+                      />
+                    ) : (
+                      <p className="mt-1">{edu.field || "N/A"}</p>
                     )}
                   </div>
                   
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Dates</label>
-                    <p className="mt-1 text-sm">{edu.start_date} - {edu.end_date}</p>
+                    {isEditing ? (
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          type="text"
+                          value={edu.start_date}
+                          onChange={(e) => handleEducationChange(idx, "start_date", e.target.value)}
+                          className="w-1/2 px-3 py-2 border rounded-md"
+                          placeholder="Start"
+                        />
+                        <input
+                          type="text"
+                          value={edu.end_date}
+                          onChange={(e) => handleEducationChange(idx, "end_date", e.target.value)}
+                          className="w-1/2 px-3 py-2 border rounded-md"
+                          placeholder="End"
+                        />
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm">{edu.start_date} - {edu.end_date}</p>
+                    )}
                   </div>
                   
-                  {edu.gpa > 0 && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">GPA</label>
-                      <p className="mt-1 text-sm">{edu.gpa.toFixed(2)}</p>
-                    </div>
-                  )}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">GPA</label>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="5"
+                        value={edu.gpa || 0}
+                        onChange={(e) => handleEducationChange(idx, "gpa", parseFloat(e.target.value) || 0)}
+                        className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="e.g., 3.85"
+                      />
+                    ) : (
+                      <p className="mt-1 text-sm font-medium">
+                        {edu.gpa > 0 ? edu.gpa.toFixed(2) : "N/A"}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
