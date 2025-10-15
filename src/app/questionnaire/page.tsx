@@ -1,16 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { FieldErrors, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle } from "lucide-react"
+import { toast } from "sonner"
 
 // Zod schema for form validation
 const questionnaireSchema = z.object({
@@ -335,14 +336,18 @@ export default function Page() {
       careerGoals: [],
       teamPreferences: [],
       projectTypes: [],
-    },
+    }
   })
 
   const progress = ((currentQuestion + 1) / questions.length) * 100
 
   const onSubmit = (data: QuestionnaireFormData) => {
     console.log("Questionnaire submitted:", data)
+    toast.info("Successfully submitted form")
     setIsSubmitted(true)
+  }
+  const onError = (errors: FieldErrors<QuestionnaireFormData>) => {
+    toast.info("Please correct the form")
   }
 
   const nextQuestion = () => {
@@ -387,80 +392,83 @@ export default function Page() {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <CardTitle>Tech Career Interests - College Students</CardTitle>
-            <Badge variant="outline">
-              {currentQuestion + 1} of {questions.length}
-            </Badge>
-          </div>
-          <Progress value={progress} className="w-full" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">{currentQuestionData.title}</h3>
-                <p className="text-sm text-muted-foreground">{currentQuestionData.description}</p>
-              </div>
-
-              <FormField
-                control={form.control}
-                name={fieldName}
-                render={() => (
-                  <FormItem>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {currentQuestionData.options.map((option) => (
-                        <FormField
-                          key={option}
-                          control={form.control}
-                          name={fieldName}
-                          render={({ field }) => {
-                            return (
-                              <FormItem key={option} className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(option)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...field.value, option])
-                                        : field.onChange(field.value?.filter((value) => value !== option))
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormLabel className="text-sm font-normal cursor-pointer">{option}</FormLabel>
-                              </FormItem>
-                            )
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+    <div className="flex flex-col py-20 justify-center">
+      <Card className="w-full max-w-2xl mx-auto min-h-140 justify-between">
+        <CardHeader>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <CardTitle>Tech Career Interests - College Students</CardTitle>
+              <Badge variant="outline">
+                {currentQuestion + 1} of {questions.length}
+              </Badge>
             </div>
+            <Progress value={progress} className="w-full" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6" id="formId">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">{currentQuestionData.title}</h3>
+                  <p className="text-sm text-muted-foreground">{currentQuestionData.description}</p>
+                </div>
 
-            <div className="flex justify-between pt-4">
+                <FormField
+                  control={form.control}
+                  name={fieldName}
+                  render={() => (
+                    <FormItem>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {currentQuestionData.options.map((option) => (
+                          <FormField
+                            key={option}
+                            control={form.control}
+                            name={fieldName}
+                            render={({ field }) => {
+                              return (
+                                <FormItem key={option} className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(option)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, option])
+                                          : field.onChange(field.value?.filter((value) => value !== option))
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">{option}</FormLabel>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+        <CardFooter>
+          <div className="flex w-full justify-end gap-4">
               <Button type="button" variant="outline" onClick={prevQuestion} disabled={currentQuestion === 0}>
                 Previous
               </Button>
 
               {currentQuestion === questions.length - 1 ? (
-                <Button type="submit">Submit Questionnaire</Button>
+                <Button type="submit" form="formId">Submit Questionnaire</Button>
               ) : (
                 <Button type="button" onClick={nextQuestion}>
                   Next
                 </Button>
               )}
             </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+        </CardFooter>
+      </Card>
+    </div>
   )
 }
