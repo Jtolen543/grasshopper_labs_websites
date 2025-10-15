@@ -5,7 +5,7 @@ import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Sparkles } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Sparkles, RefreshCw, Edit, ArrowRight } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -175,13 +175,18 @@ export function ResumeUpload() {
   const handleVerificationConfirm = (data: Resume) => {
     setVerifiedData(data)
     setShowVerification(false)
-    setShowPreferences(true)
     toast.success("Resume data confirmed!")
   }
 
   const handleVerificationCancel = () => {
     setShowVerification(false)
     toast.info("Verification cancelled")
+  }
+
+  const handleEditResume = () => {
+    if (parseResult?.details) {
+      setShowVerification(true)
+    }
   }
 
   const formatFileSize = (bytes: number) => {
@@ -461,52 +466,60 @@ export function ResumeUpload() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex gap-4 flex-wrap">
-                  <Button 
-                    onClick={() => parseResume("ai")} 
-                    disabled={isParsing} 
-                    variant="default" 
-                    size="sm"
-                  >
-                    {isParsing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Rocket className="h-4 w-4 mr-2" />
-                    )}
-                    Parse with AI
-                  </Button>
-                  <Button 
-                    onClick={() => parseResume("huggingface")} 
-                    disabled={isParsing} 
-                    variant="secondary" 
-                    size="sm"
-                  >
-                    {isParsing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
-                    Parse with HuggingFace
-                  </Button>
-                  <Button 
-                    onClick={() => parseResume("regex")} 
-                    disabled={isParsing} 
-                    variant="outline" 
-                    size="sm"
-                  >
-                    {isParsing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <FileText className="h-4 w-4 mr-2" />
-                    )}
-                    Parse with Regex
-                  </Button>
-                  {parseResult && (
-                    <div className="flex items-centers gap-4">
+                {!parseResult ? (
+                  <div className="flex gap-4 flex-wrap">
+                    <Button 
+                      onClick={() => parseResume("ai")} 
+                      disabled={isParsing} 
+                      variant="default" 
+                      size="sm"
+                    >
+                      {isParsing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Rocket className="h-4 w-4 mr-2" />
+                      )}
+                      Parse with AI
+                    </Button>
+                    <Button 
+                      onClick={() => parseResume("huggingface")} 
+                      disabled={isParsing} 
+                      variant="secondary" 
+                      size="sm"
+                    >
+                      {isParsing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-2" />
+                      )}
+                      Parse with HuggingFace
+                    </Button>
+                    <Button 
+                      onClick={() => parseResume("regex")} 
+                      disabled={isParsing} 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      {isParsing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
+                      Parse with Regex
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 flex-wrap justify-between w-full">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <Button variant="secondary" size="sm" onClick={handleEditResume}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button>
-                            <FileUp />
+                          <Button variant="secondary" size="sm">
+                            <FileUp className="h-4 w-4 mr-2" />
                             Export as
                           </Button>
                         </DropdownMenuTrigger>
@@ -515,22 +528,58 @@ export function ResumeUpload() {
                           <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button><Link href="/questionnaire">Fill out questionnaire</Link></Button>
-                    </div>
-                  )}
-                </div>
 
-                {/* {parseResult && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" disabled={isParsing}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Switch Parser
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => parseResume("ai")} className="hover:cursor-pointer">
+                            <Rocket className="h-4 w-4 mr-2" />
+                            Parse with AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => parseResume("huggingface")} className="hover:cursor-pointer">
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Parse with HuggingFace
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => parseResume("regex")} className="hover:cursor-pointer">
+                            <FileText className="h-4 w-4 mr-2" />
+                            Parse with Regex
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="group bg-primary hover:bg-primary/90 transition-all"
+                    >
+                      <Link href="/questionnaire" className="flex items-center gap-2">
+                        Fill out questionnaire
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+
+                {parseResult && (
                   <div className="mt-4">
                     <div className="border rounded-lg p-4 bg-muted/50">
                       <h3 className="font-semibold mb-3 flex items-center">
                         <Rocket className="h-4 w-4 mr-2" />
                         Parsing Results
                       </h3>
-                      {renderParseResult(parseResult)}
+                      {renderParseResult({
+                        details: verifiedData || parseResult.details,
+                        missing: parseResult.missing
+                      })}
                     </div>
                   </div>
-                )} */}
+                )}
               </div>
             </div>
           </CardContent>
@@ -544,47 +593,6 @@ export function ResumeUpload() {
           onCancel={handleVerificationCancel}
           open={showVerification}
         />
-      )}
-
-      {showPreferences && verifiedData && (
-        <StudentPreferences 
-          onSubmit={handlePreferencesSubmit} 
-          onSkip={handlePreferencesSkip}
-        />
-      )}
-
-      {studentPreferences && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              All Done!
-            </CardTitle>
-            <CardDescription>Your resume and preferences have been saved</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="font-semibold text-sm mb-2">Target Roles:</h4>
-              <div className="flex flex-wrap gap-1">
-                {studentPreferences.targetRoles.map((role, idx) => (
-                  <Badge key={idx} variant="secondary">{role}</Badge>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-2">Target Companies:</h4>
-              <div className="flex flex-wrap gap-1">
-                {studentPreferences.targetCompanies.map((company, idx) => (
-                  <Badge key={idx} variant="outline">{company}</Badge>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-2">Technical Interview Level:</h4>
-              <Badge variant="default" className="text-lg">{studentPreferences.technicalInterviewLevel}/10</Badge>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   )
