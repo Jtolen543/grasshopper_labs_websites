@@ -1,0 +1,1 @@
+// generate a contact page
