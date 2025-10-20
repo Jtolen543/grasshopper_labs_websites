@@ -165,7 +165,6 @@ export default function QuestionnaireForm() {
                   "flex items-start space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer hover:bg-muted/50",
                   currentValues?.includes(option) ? "border-primary bg-primary/5" : "border-border",
                 )}
-                onClick={() => toggleOption(option)}
               >
                 <Checkbox
                   id={option}
