@@ -52,7 +52,6 @@ export const extractWithChatGPT = async (content: string) => {
       console.log(`Total price of API call: $${price.toFixed(6)}`)
     }
 
-
     return result.output_parsed
   } catch (e) {
     console.log(e)
