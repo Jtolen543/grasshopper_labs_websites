@@ -2,13 +2,22 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, ArrowDown, Target, Check } from "lucide-react"
+import { TrendingUp, ArrowDown, Target, Check, Github, Linkedin, Globe, Briefcase, Award, Users, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Mock data - replace with actual resume data later
 const mockStudentData = {
   gpa: 3.7, // This would come from parsed resume
   yearInSchool: 3, // 1 = Freshman, 2 = Sophomore, 3 = Junior, 4 = Senior
+  resume: {
+    hasGithub: true,
+    hasLinkedIn: true,
+    hasPortfolio: false,
+    hasProjects: true,
+    hasExperience: true,
+    hasCertifications: false,
+    hasExtracurriculars: true,
+  },
 }
 
 const INTERNSHIP_AVG_GPA = 3.6 // Average GPA of students who got internships
@@ -342,6 +351,140 @@ function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
   )
 }
 
+// Resume Completeness Score Component
+interface ResumeCompletenessProps {
+  hasGithub: boolean
+  hasLinkedIn: boolean
+  hasPortfolio: boolean
+  hasProjects: boolean
+  hasExperience: boolean
+  hasCertifications: boolean
+  hasExtracurriculars: boolean
+}
+
+function ResumeCompletenessScore(props: ResumeCompletenessProps) {
+  const criteria = [
+    { label: "GitHub Profile", icon: Github, value: props.hasGithub, points: 15 },
+    { label: "LinkedIn Profile", icon: Linkedin, value: props.hasLinkedIn, points: 10 },
+    { label: "Portfolio Website", icon: Globe, value: props.hasPortfolio, points: 15 },
+    { label: "Projects", icon: Briefcase, value: props.hasProjects, points: 20 },
+    { label: "Work Experience", icon: Briefcase, value: props.hasExperience, points: 20 },
+    { label: "Certifications", icon: Award, value: props.hasCertifications, points: 10 },
+    { label: "Extracurriculars", icon: Users, value: props.hasExtracurriculars, points: 10 },
+  ]
+
+  const totalScore = criteria.reduce((sum, item) => sum + (item.value ? item.points : 0), 0)
+  const maxScore = 100
+  const percentage = (totalScore / maxScore) * 100
+
+  // Determine color and status based on completeness
+  const getStatusInfo = (score: number) => {
+    if (score >= 90) return { color: "text-green-600", bg: "bg-green-600", label: "Excellent", message: "Your resume is comprehensive and competitive!" }
+    if (score >= 75) return { color: "text-blue-600", bg: "bg-blue-600", label: "Very Good", message: "Great progress! A few more additions will make it perfect." }
+    if (score >= 60) return { color: "text-yellow-600", bg: "bg-yellow-600", label: "Good", message: "You're on the right track. Keep building!" }
+    if (score >= 40) return { color: "text-orange-600", bg: "bg-orange-600", label: "Fair", message: "Several areas need attention to strengthen your profile." }
+    return { color: "text-red-600", bg: "bg-red-600", label: "Needs Work", message: "Focus on adding key resume components." }
+  }
+
+  const status = getStatusInfo(totalScore)
+  const circumference = 2 * Math.PI * 70 // radius = 70
+  const strokeDashoffset = circumference - (percentage / 100) * circumference
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Resume Completeness</CardTitle>
+            <CardDescription>How complete is your profile?</CardDescription>
+          </div>
+          <Badge variant="outline" className={status.color}>
+            {status.label}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Circular progress gauge */}
+          <div className="flex flex-col items-center justify-center">
+            <div className="relative w-48 h-48">
+              {/* Background circle */}
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="96"
+                  cy="96"
+                  r="70"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  fill="none"
+                  className="text-muted"
+                />
+                {/* Progress circle */}
+                <circle
+                  cx="96"
+                  cy="96"
+                  r="70"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  fill="none"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  className={cn("transition-all duration-1000 ease-out", status.bg)}
+                />
+              </svg>
+              {/* Center text */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-5xl font-bold">{totalScore}%</span>
+                <span className="text-sm text-muted-foreground">Complete</span>
+              </div>
+            </div>
+            <p className="text-center text-sm text-muted-foreground mt-4 max-w-xs">
+              {status.message}
+            </p>
+          </div>
+
+          {/* Checklist */}
+          <div className="space-y-3">
+            {criteria.map((item) => {
+              const Icon = item.icon
+              return (
+                <div
+                  key={item.label}
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded-lg border-2 transition-all",
+                    item.value ? "border-green-500 bg-green-50 dark:bg-green-950/20" : "border-border bg-muted/30",
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center",
+                        item.value ? "bg-green-500 text-white" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {item.value ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <span className={cn("font-medium", item.value ? "text-foreground" : "text-muted-foreground")}>
+                        {item.label}
+                      </span>
+                    </div>
+                  </div>
+                  <Badge variant={item.value ? "default" : "secondary"} className="font-semibold">
+                    +{item.points}%
+                  </Badge>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background p-8">
@@ -355,6 +498,8 @@ export default function DashboardPage() {
           <GPAProgressBar gpa={mockStudentData.gpa} />
           
           <YearInSchoolIndicator currentYear={mockStudentData.yearInSchool} />
+
+          <ResumeCompletenessScore {...mockStudentData.resume} />
 
           <Card>
             <CardHeader>
