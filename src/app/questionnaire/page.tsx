@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { questionnaireSchema, questionnaireOptions, type QuestionnaireData } from "./data"
@@ -30,6 +31,7 @@ const steps = [
 ]
 
 export default function QuestionnaireForm() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
   const [jsonOutput, setJsonOutput] = useState<QuestionnaireData | null>(null)
@@ -112,9 +114,16 @@ export default function QuestionnaireForm() {
             </div>
             <div className="flex gap-2">
               <Button
+                onClick={() => router.push("/dashboard")}
+                className="flex-1"
+              >
+                View Dashboard
+              </Button>
+              <Button
                 onClick={() => {
                   navigator.clipboard.writeText(JSON.stringify(jsonOutput, null, 2))
                 }}
+                variant="secondary"
                 className="flex-1"
               >
                 Copy JSON
