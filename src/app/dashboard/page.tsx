@@ -4,8 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, ArrowDown, Target, Check, Github, Linkedin, Globe, Briefcase, Award, Users, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-// import for coursework radar chart
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from "recharts"
+import { CareerPathCourseworkChart } from "@/components/career-path-radar"
 
 // Mock data - replace with actual resume data later
 const mockStudentData = {
@@ -480,98 +479,6 @@ function ResumeCompletenessScore(props: ResumeCompletenessProps) {
                 </div>
               )
             })}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// Mock data - replace with actual resume and career path data
-const selectedCareerPaths = ["Software", "XR", "Robotics", "Hardware", "UIUX", "AI"]
-
-const courseScores: Record<string, number> = {
-  "Data Structures": 90,
-  "Algorithms": 80,
-  "Circuits": 60,
-  "AI/ML": 50,
-  "XR Development": 40,
-  "Computer Architecture": 70,
-  "Microprocessors": 30,
-  "SWE": 85,
-}
-
-const careerPathWeights: Record<string, Record<string, number>> = {
-  Software: { "Data Structures": 0.3, "Algorithms": 0.4, "AI/ML": 0.3 },
-  XR: { "Circuits": 0.2, "XR Development": 0.5, "AI/ML": 0.3 },
-  Robotics: { "Circuits": 0.5, "AI/ML": 0.3, "Algorithms": 0.2 },
-  Hardware: { "Circuits": 0.3, "Microprocessors": 0.4, "AI/ML": 0.3 },
-  UIUX: { "SWE": 0.2, "XR Development": 0.5, "Data Structures": 0.3 },
-  AI: { "Data Structures": 0.5, "AI/ML": 0.3, "Algorithms": 0.2 },
-}
-
-// Compute radar data
-const radarData = selectedCareerPaths.map((path) => {
-  const coursesForPath = careerPathWeights[path]
-  let score = 0
-  Object.entries(coursesForPath).forEach(([course, weight]) => {
-    const completion = courseScores[course] || 0
-    score += completion * weight
-  })
-  return { careerPath: path, score }
-})
-
-function CareerPathCourseworkChart() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Career Path Coursework</CardTitle>
-        <CardDescription>
-          How your completed courses align with selected career paths
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Left: Radar chart */}
-          <div className="flex-1 h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="careerPath" />
-                <PolarRadiusAxis tick={false} domain={[0, 100]} />
-                <Radar
-                  name="Your Fit"
-                  dataKey="score"
-                  stroke="#0ea5e9"
-                  fill="#0ea5e9"
-                  fillOpacity={0.4}
-                />
-                <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Right: Course list */}
-          <div className="flex-1 space-y-3">
-            <h3 className="text-lg font-semibold mb-2">Course Completion</h3>
-            {Object.entries(courseScores).map(([course, completion]) => (
-              <div
-                key={course}
-                className={cn(
-                  "flex items-center justify-between p-3 rounded-lg border-2 transition-all",
-                  completion >= 70 ? "border-blue-500 bg-blue-250" : "border-orange-400 bg-orange-250"
-                )}
-              >
-                <span className="font-medium">{course}</span>
-                <span className={cn(
-                  "font-semibold",
-                  completion >= 70 ? "text-white-600" : "text-white-600"
-                )}>
-                  {completion}%
-                </span>
-              </div>
-            ))}
           </div>
         </div>
       </CardContent>
