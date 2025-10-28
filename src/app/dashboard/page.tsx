@@ -1,15 +1,34 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, ArrowDown, Target, Check, Github, Linkedin, Globe, Briefcase, Award, Users, X } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { 
+  TrendingUp, Target, Check, Github, Linkedin, Globe, Briefcase, Award, Users, X,
+  GraduationCap, FolderKanban, Building2, Code, Database, Cloud, Cpu, Star
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CareerPathCourseworkChart } from "@/components/career-path-radar"
+import { 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
+  ResponsiveContainer, Tooltip, PieChart, Pie, Cell
+} from "recharts"
 
 // Mock data - replace with actual resume data later
 const mockStudentData = {
-  gpa: 3.7, // This would come from parsed resume
-  yearInSchool: 3, // 1 = Freshman, 2 = Sophomore, 3 = Junior, 4 = Senior
+  gpa: 3.7,
+  yearInSchool: 3,
+  internshipCount: 1,
+  projectCount: 4,
+  skills: {
+    programmingLanguages: ["JavaScript", "Python", "TypeScript", "Java"],
+    frameworks: ["React", "Next.js", "Node.js", "Express"],
+    databases: ["PostgreSQL", "MongoDB"],
+    devops: ["Docker", "Git"],
+    certifications: [],
+  },
   resume: {
     hasGithub: true,
     hasLinkedIn: true,
@@ -21,11 +40,14 @@ const mockStudentData = {
   },
 }
 
-const INTERNSHIP_AVG_GPA = 3.6 // Average GPA of students who got internships
+const INTERNSHIP_AVG_GPA = 3.6
+
+// ========================
+// EDUCATION TAB COMPONENTS
+// ========================
 
 // GPA Component
 function GPAProgressBar({ gpa }: { gpa: number }) {
-  // Determine color zone and label
   const getGPAZone = (gpa: number) => {
     if (gpa < 3.0) return { color: "bg-red-500", label: "Needs Improvement", textColor: "text-red-700" }
     if (gpa < 3.4) return { color: "bg-orange-500", label: "Fair", textColor: "text-orange-700" }
@@ -36,19 +58,17 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
 
   const MIN_GPA = 2.5
   const MAX_GPA = 4.0
-  const range = MAX_GPA - MIN_GPA // 1.5
+  const range = MAX_GPA - MIN_GPA
 
-  // Calculate percentage within the 2.5-4.0 range
   const percentage = ((gpa - MIN_GPA) / range) * 100
   const benchmarkPercentage = ((INTERNSHIP_AVG_GPA - MIN_GPA) / range) * 100
 
-  // Calculate zone widths based on 2.5-4.0 scale
   const zoneWidths = {
-    red: ((3.0 - 2.5) / range) * 100, // 2.5-3.0 = 33.3%
-    orange: ((3.4 - 3.0) / range) * 100, // 3.0-3.4 = 26.7%
-    yellow: ((3.7 - 3.4) / range) * 100, // 3.4-3.7 = 20%
-    lightGreen: ((3.8 - 3.7) / range) * 100, // 3.7-3.8 = 6.7%
-    darkGreen: ((4.0 - 3.8) / range) * 100, // 3.8-4.0 = 13.3%
+    red: ((3.0 - 2.5) / range) * 100,
+    orange: ((3.4 - 3.0) / range) * 100,
+    yellow: ((3.7 - 3.4) / range) * 100,
+    lightGreen: ((3.8 - 3.7) / range) * 100,
+    darkGreen: ((4.0 - 3.8) / range) * 100,
   }
 
   const zone = getGPAZone(gpa)
@@ -67,7 +87,6 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* GPA Display */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">Your GPA</p>
@@ -79,11 +98,8 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
           </div>
         </div>
 
-        {/* Progress Bar with Color Zones */}
         <div className="space-y-2 py-4">
-          {/* Container for labels and bar - no overflow hidden */}
           <div className="relative w-full" style={{ paddingTop: '45px', paddingBottom: '60px' }}>
-            {/* Student's GPA label (above bar) */}
             <div
               className="absolute top-0 flex flex-col items-center -translate-x-1/2 z-20"
               style={{ left: `${Math.max(0, Math.min(100, percentage))}%` }}
@@ -91,13 +107,10 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
               <div className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg whitespace-nowrap">
                 You: {gpa.toFixed(2)}
               </div>
-              {/* Large triangle arrow pointing down */}
               <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-primary" />
             </div>
 
-            {/* The actual progress bar */}
             <div className="relative h-8 w-full rounded-full overflow-hidden bg-muted" style={{ marginTop: '37px' }}>
-              {/* Color zones background */}
               <div className="absolute inset-0 flex">
                 <div className="bg-red-500" style={{ width: `${zoneWidths.red}%` }} />
                 <div className="bg-orange-500" style={{ width: `${zoneWidths.orange}%` }} />
@@ -106,25 +119,21 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
                 <div className="bg-green-600" style={{ width: `${zoneWidths.darkGreen}%` }} />
               </div>
 
-              {/* Student's GPA marker line */}
               <div
                 className="absolute top-0 bottom-0 w-1 bg-white shadow-lg z-10"
                 style={{ left: `${Math.max(0, Math.min(100, percentage))}%` }}
               />
 
-              {/* Internship average benchmark line */}
               <div
                 className="absolute top-0 bottom-0 w-1 bg-blue-600 z-10 shadow-md"
                 style={{ left: `${benchmarkPercentage}%` }}
               />
             </div>
 
-            {/* Internship average label (below bar) */}
             <div
               className="absolute bottom-0 flex flex-col items-center -translate-x-1/2 z-20"
               style={{ left: `${benchmarkPercentage}%` }}
             >
-              {/* Large triangle arrow pointing up */}
               <div className="w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-blue-600" />
               <div className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg flex items-center gap-1.5 whitespace-nowrap">
                 <Target className="h-4 w-4" />
@@ -133,7 +142,6 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
             </div>
           </div>
 
-          {/* Number line */}
           <div className="relative w-full pt-10 pb-2">
             <div className="relative text-xs text-muted-foreground">
               {[2.5, 3.0, 3.4, 3.7, 3.8, 4.0].map((value) => {
@@ -152,7 +160,6 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
             </div>
           </div>
 
-          {/* Legend */}
           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-4">
             <div className="flex items-center gap-1.5">
               <div className="h-3 w-3 rounded-sm bg-red-500" />
@@ -177,7 +184,6 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
           </div>
         </div>
 
-        {/* Contextual Feedback */}
         <div className="bg-muted/50 p-4 rounded-lg">
           <p className="text-sm">
             {gpa >= INTERNSHIP_AVG_GPA ? (
@@ -203,34 +209,10 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
 // Year in School Component
 function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
   const years = [
-    {
-      year: 1,
-      label: "Freshman",
-      title: "Build Your Foundation",
-      description: "Focus on fundamentals, join clubs, start building portfolio",
-      color: "from-blue-500 to-blue-600",
-    },
-    {
-      year: 2,
-      label: "Sophomore",
-      title: "Gain Experience",
-      description: "Seek first internship, develop technical projects, attend career fairs",
-      color: "from-purple-500 to-purple-600",
-    },
-    {
-      year: 3,
-      label: "Junior",
-      title: "Level Up",
-      description: "Target competitive internships, strengthen resume, network actively",
-      color: "from-orange-500 to-orange-600",
-    },
-    {
-      year: 4,
-      label: "Senior",
-      title: "Launch Your Career",
-      description: "Apply for full-time roles, leverage experience, finalize portfolio",
-      color: "from-green-500 to-green-600",
-    },
+    { year: 1, label: "Freshman", title: "Build Your Foundation", description: "Focus on fundamentals, join clubs, start building portfolio", color: "from-blue-500 to-blue-600" },
+    { year: 2, label: "Sophomore", title: "Gain Experience", description: "Seek first internship, develop technical projects, attend career fairs", color: "from-purple-500 to-purple-600" },
+    { year: 3, label: "Junior", title: "Level Up", description: "Target competitive internships, strengthen resume, network actively", color: "from-orange-500 to-orange-600" },
+    { year: 4, label: "Senior", title: "Launch Your Career", description: "Apply for full-time roles, leverage experience, finalize portfolio", color: "from-green-500 to-green-600" },
   ]
 
   return (
@@ -240,16 +222,13 @@ function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
         <CardDescription>Your current year and recommended focus areas</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Progress stepper */}
         <div className="relative">
-          {/* Connection line */}
           <div className="absolute top-6 left-0 right-0 h-1 bg-muted" />
           <div
             className="absolute top-6 left-0 h-1 bg-gradient-to-r from-primary to-primary transition-all duration-500"
             style={{ width: `${((currentYear - 1) / 3) * 100}%` }}
           />
 
-          {/* Year circles */}
           <div className="relative grid grid-cols-4 gap-4">
             {years.map((yearData) => {
               const isActive = yearData.year === currentYear
@@ -258,7 +237,6 @@ function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
 
               return (
                 <div key={yearData.year} className="flex flex-col items-center">
-                  {/* Circle */}
                   <div
                     className={cn(
                       "w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 border-4",
@@ -269,8 +247,6 @@ function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
                   >
                     {isCompleted ? <Check className="h-6 w-6" /> : yearData.year}
                   </div>
-
-                  {/* Label */}
                   <p
                     className={cn(
                       "mt-2 text-sm font-semibold",
@@ -287,7 +263,6 @@ function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
           </div>
         </div>
 
-        {/* Current year details */}
         <div className="mt-8">
           {years.map((yearData) => {
             if (yearData.year === currentYear) {
@@ -312,83 +287,233 @@ function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
             return null
           })}
         </div>
+      </CardContent>
+    </Card>
+  )
+}
 
-        {/* All year summaries */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          {years.map((yearData) => {
-            const isActive = yearData.year === currentYear
-            const isCompleted = yearData.year < currentYear
+// Skills Radar Chart
+function SkillsRadarChart({ skills }: { skills: typeof mockStudentData.skills }) {
+  const radarData = [
+    { category: "Languages", count: skills.programmingLanguages.length, fullMark: 8 },
+    { category: "Frameworks", count: skills.frameworks.length, fullMark: 8 },
+    { category: "Databases", count: skills.databases.length, fullMark: 5 },
+    { category: "DevOps", count: skills.devops.length, fullMark: 5 },
+    { category: "Certifications", count: skills.certifications.length, fullMark: 5 },
+  ]
 
-            return (
-              <div
-                key={yearData.year}
-                className={cn(
-                  "p-4 rounded-lg border-2 transition-all",
-                  isActive && "border-primary bg-primary/5",
-                  isCompleted && "border-green-500 bg-green-50 dark:bg-green-950/20",
-                  !isActive && !isCompleted && "border-border bg-muted/30",
-                )}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
-                      isActive && "bg-primary text-primary-foreground",
-                      isCompleted && "bg-green-500 text-white",
-                      !isActive && !isCompleted && "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {isCompleted ? <Check className="h-4 w-4" /> : yearData.year}
-                  </div>
-                  <h4 className="font-semibold">{yearData.label}</h4>
-                </div>
-                <p className="text-sm text-muted-foreground">{yearData.description}</p>
-              </div>
-            )
-          })}
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Skills Portfolio</CardTitle>
+        <CardDescription>Your skill depth across categories</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="category" />
+              <PolarRadiusAxis angle={90} domain={[0, 'dataMax']} />
+              <Radar
+                name="Your Skills"
+                dataKey="count"
+                stroke="#8b5cf6"
+                fill="#8b5cf6"
+                fillOpacity={0.6}
+              />
+              <Tooltip />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+          <div className="p-4 border rounded-lg">
+            <Code className="h-5 w-5 text-blue-500 mb-2" />
+            <p className="text-2xl font-bold">{skills.programmingLanguages.length}</p>
+            <p className="text-sm text-muted-foreground">Languages</p>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <Cpu className="h-5 w-5 text-purple-500 mb-2" />
+            <p className="text-2xl font-bold">{skills.frameworks.length}</p>
+            <p className="text-sm text-muted-foreground">Frameworks</p>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <Database className="h-5 w-5 text-green-500 mb-2" />
+            <p className="text-2xl font-bold">{skills.databases.length}</p>
+            <p className="text-sm text-muted-foreground">Databases</p>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <Cloud className="h-5 w-5 text-orange-500 mb-2" />
+            <p className="text-2xl font-bold">{skills.devops.length}</p>
+            <p className="text-sm text-muted-foreground">DevOps</p>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <Award className="h-5 w-5 text-yellow-500 mb-2" />
+            <p className="text-2xl font-bold">{skills.certifications.length}</p>
+            <p className="text-sm text-muted-foreground">Certifications</p>
+          </div>
         </div>
       </CardContent>
     </Card>
   )
 }
 
-// Resume Completeness Score Component
-interface ResumeCompletenessProps {
-  hasGithub: boolean
-  hasLinkedIn: boolean
-  hasPortfolio: boolean
-  hasProjects: boolean
-  hasExperience: boolean
-  hasCertifications: boolean
-  hasExtracurriculars: boolean
+// Technology Stack Alignment
+function TechStackAlignment() {
+  const stackData = [
+    { sector: "Full Stack Dev", match: 8, total: 12, percentage: 67 },
+    { sector: "Frontend Dev", match: 10, total: 12, percentage: 83 },
+    { sector: "AI/ML", match: 3, total: 10, percentage: 30 },
+    { sector: "Cloud Computing", match: 2, total: 10, percentage: 20 },
+  ]
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Technology Stack Alignment</CardTitle>
+        <CardDescription>Match between your skills and target tech sectors</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {stackData.map((stack) => (
+          <div key={stack.sector} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">{stack.sector}</p>
+                <p className="text-sm text-muted-foreground">
+                  {stack.match}/{stack.total} relevant skills ({stack.percentage}%)
+                </p>
+              </div>
+              <Badge
+                variant={stack.percentage >= 70 ? "default" : stack.percentage >= 50 ? "secondary" : "outline"}
+              >
+                {stack.percentage}%
+              </Badge>
+            </div>
+            <div className="relative h-3 w-full rounded-full overflow-hidden bg-muted">
+              <div
+                className={cn(
+                  "h-full transition-all",
+                  stack.percentage >= 70 ? "bg-green-500" : stack.percentage >= 50 ? "bg-yellow-500" : "bg-orange-500"
+                )}
+                style={{ width: `${stack.percentage}%` }}
+              />
+            </div>
+          </div>
+        ))}
+
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+          <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Top Skills to Learn:</h4>
+          <ul className="space-y-1 text-sm text-blue-700 dark:text-blue-300">
+            <li>• AWS/Azure basics (for Cloud Computing)</li>
+            <li>• TensorFlow or PyTorch (for AI/ML)</li>
+            <li>• Docker & Kubernetes (for DevOps)</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
-function ResumeCompletenessScore(props: ResumeCompletenessProps) {
+// ========================
+// PROJECTS TAB COMPONENTS
+// ========================
+
+function ProjectPortfolioCounter({ projectCount }: { projectCount: number }) {
+  const getProjectStatus = (count: number) => {
+    if (count <= 1) return { 
+      status: "Build More", 
+      message: "Build more projects to showcase your skills!", 
+      color: "text-amber-600",
+      bgColor: "bg-amber-50 dark:bg-amber-950/20",
+      borderColor: "border-amber-200 dark:border-amber-900"
+    }
+    if (count <= 3) return { 
+      status: "Good Portfolio", 
+      message: "Good portfolio! Consider adding 1-2 more diverse projects.", 
+      color: "text-green-600",
+      bgColor: "bg-green-50 dark:bg-green-950/20",
+      borderColor: "border-green-200 dark:border-green-900"
+    }
+    return { 
+      status: "Impressive!", 
+      message: "Impressive portfolio! Great demonstration of hands-on experience.", 
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
+      borderColor: "border-emerald-200 dark:border-emerald-900"
+    }
+  }
+
+  const status = getProjectStatus(projectCount)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Project Portfolio</CardTitle>
+        <CardDescription>Your project count and quality indicators</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-primary/10 mb-4">
+              <FolderKanban className="h-16 w-16 text-primary" />
+            </div>
+            <p className="text-6xl font-bold">{projectCount}</p>
+            <p className="text-muted-foreground">Total Projects</p>
+          </div>
+        </div>
+
+        <div className={cn("p-4 rounded-lg border", status.bgColor, status.borderColor)}>
+          <div className="flex items-start gap-3">
+            <Star className={cn("h-5 w-5 mt-0.5", status.color)} />
+            <div>
+              <h4 className={cn("font-semibold", status.color)}>{status.status}</h4>
+              <p className="text-sm text-muted-foreground mt-1">{status.message}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          {Array.from({ length: Math.min(projectCount, 8) }).map((_, i) => (
+            <div key={i} className="aspect-square bg-primary/20 rounded-lg flex items-center justify-center">
+              <FolderKanban className="h-6 w-6 text-primary" />
+            </div>
+          ))}
+          {projectCount > 8 && (
+            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
+              <span className="text-sm font-bold">+{projectCount - 8}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ResumeCompletenessScore({ resume }: { resume: typeof mockStudentData.resume }) {
   const criteria = [
-    { label: "GitHub Profile", icon: Github, value: props.hasGithub, points: 15 },
-    { label: "LinkedIn Profile", icon: Linkedin, value: props.hasLinkedIn, points: 10 },
-    { label: "Portfolio Website", icon: Globe, value: props.hasPortfolio, points: 15 },
-    { label: "Projects", icon: Briefcase, value: props.hasProjects, points: 20 },
-    { label: "Work Experience", icon: Briefcase, value: props.hasExperience, points: 20 },
-    { label: "Certifications", icon: Award, value: props.hasCertifications, points: 10 },
-    { label: "Extracurriculars", icon: Users, value: props.hasExtracurriculars, points: 10 },
+    { label: "GitHub Profile", icon: Github, value: resume.hasGithub, points: 15 },
+    { label: "LinkedIn Profile", icon: Linkedin, value: resume.hasLinkedIn, points: 10 },
+    { label: "Portfolio Website", icon: Globe, value: resume.hasPortfolio, points: 15 },
+    { label: "Projects", icon: Briefcase, value: resume.hasProjects, points: 20 },
+    { label: "Work Experience", icon: Briefcase, value: resume.hasExperience, points: 20 },
+    { label: "Certifications", icon: Award, value: resume.hasCertifications, points: 10 },
+    { label: "Extracurriculars", icon: Users, value: resume.hasExtracurriculars, points: 10 },
   ]
 
   const totalScore = criteria.reduce((sum, item) => sum + (item.value ? item.points : 0), 0)
-  const maxScore = 100
-  const percentage = (totalScore / maxScore) * 100
+  const percentage = totalScore
 
-  // Determine color and status based on completeness
   const getStatusInfo = (score: number) => {
-    if (score >= 90) return { color: "text-green-600", bg: "bg-green-600", label: "Excellent", message: "Your resume is comprehensive and competitive!" }
-    if (score >= 75) return { color: "text-blue-600", bg: "bg-blue-600", label: "Very Good", message: "Great progress! A few more additions will make it perfect." }
-    if (score >= 60) return { color: "text-yellow-600", bg: "bg-yellow-600", label: "Good", message: "You're on the right track. Keep building!" }
-    if (score >= 40) return { color: "text-orange-600", bg: "bg-orange-600", label: "Fair", message: "Several areas need attention to strengthen your profile." }
-    return { color: "text-red-600", bg: "bg-red-600", label: "Needs Work", message: "Focus on adding key resume components." }
+    if (score >= 90) return { color: "text-green-600", bg: "bg-green-600", label: "Excellent" }
+    if (score >= 75) return { color: "text-blue-600", bg: "bg-blue-600", label: "Very Good" }
+    if (score >= 60) return { color: "text-yellow-600", bg: "bg-yellow-600", label: "Good" }
+    if (score >= 40) return { color: "text-orange-600", bg: "bg-orange-600", label: "Fair" }
+    return { color: "text-red-600", bg: "bg-red-600", label: "Needs Work" }
   }
 
   const status = getStatusInfo(totalScore)
-  const circumference = 2 * Math.PI * 70 // radius = 70
+  const circumference = 2 * Math.PI * 70
   const strokeDashoffset = circumference - (percentage / 100) * circumference
 
   return (
@@ -406,46 +531,23 @@ function ResumeCompletenessScore(props: ResumeCompletenessProps) {
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Circular progress gauge */}
           <div className="flex flex-col items-center justify-center">
             <div className="relative w-48 h-48">
-              {/* Background circle */}
               <svg className="w-full h-full transform -rotate-90">
+                <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none" className="text-muted" />
                 <circle
-                  cx="96"
-                  cy="96"
-                  r="70"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                  fill="none"
-                  className="text-muted"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="96"
-                  cy="96"
-                  r="70"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                  fill="none"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
+                  cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none"
+                  strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
                   className={cn("transition-all duration-1000 ease-out", status.bg)}
                 />
               </svg>
-              {/* Center text */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-5xl font-bold">{totalScore}%</span>
                 <span className="text-sm text-muted-foreground">Complete</span>
               </div>
             </div>
-            <p className="text-center text-sm text-muted-foreground mt-4 max-w-xs">
-              {status.message}
-            </p>
           </div>
 
-          {/* Checklist */}
           <div className="space-y-3">
             {criteria.map((item) => {
               const Icon = item.icon
@@ -466,12 +568,9 @@ function ResumeCompletenessScore(props: ResumeCompletenessProps) {
                     >
                       {item.value ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span className={cn("font-medium", item.value ? "text-foreground" : "text-muted-foreground")}>
-                        {item.label}
-                      </span>
-                    </div>
+                    <span className={cn("font-medium text-sm", item.value ? "text-foreground" : "text-muted-foreground")}>
+                      {item.label}
+                    </span>
                   </div>
                   <Badge variant={item.value ? "default" : "secondary"} className="font-semibold">
                     +{item.points}%
@@ -486,7 +585,155 @@ function ResumeCompletenessScore(props: ResumeCompletenessProps) {
   )
 }
 
+// ========================
+// EXPERIENCE TAB COMPONENTS
+// ========================
+
+function InternshipCounter({ internshipCount }: { internshipCount: number }) {
+  const getInternshipStatus = (count: number) => {
+    if (count === 0) return {
+      message: "No worries! Everyone starts somewhere. We'll help you land your first opportunity!",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50 dark:bg-blue-950/20",
+      borderColor: "border-blue-200 dark:border-blue-900",
+      icon: Briefcase
+    }
+    if (count === 1) return {
+      message: "Great start! Previous experience makes future opportunities easier to secure.",
+      color: "text-green-600",
+      bgColor: "bg-green-50 dark:bg-green-950/20",
+      borderColor: "border-green-200 dark:border-green-900",
+      icon: Briefcase
+    }
+    return {
+      message: "Excellent position! You're highly competitive for top roles.",
+      color: "text-amber-600",
+      bgColor: "bg-amber-50 dark:bg-amber-950/20",
+      borderColor: "border-amber-200 dark:border-amber-900",
+      icon: Star
+    }
+  }
+
+  const status = getInternshipStatus(internshipCount)
+  const Icon = status.icon
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Internship Experience</CardTitle>
+        <CardDescription>Your previous internship count</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-primary/10 mb-4">
+              <Icon className="h-16 w-16 text-primary" />
+            </div>
+            <p className="text-6xl font-bold">{internshipCount}</p>
+            <p className="text-muted-foreground">
+              {internshipCount === 1 ? "Internship" : "Internships"}
+            </p>
+          </div>
+        </div>
+
+        <div className={cn("p-4 rounded-lg border", status.bgColor, status.borderColor)}>
+          <p className={cn("text-sm font-medium", status.color)}>{status.message}</p>
+        </div>
+
+        <div className="flex justify-center gap-2">
+          {Array.from({ length: Math.max(internshipCount, 3) }).map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                "w-12 h-12 rounded-lg flex items-center justify-center transition-all",
+                i < internshipCount ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}
+            >
+              <Briefcase className="h-6 w-6" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function RoleSkillsMatch() {
+  const roleData = [
+    { role: "Full Stack Dev", match: 70, skills: "7/10 skills", color: "#10b981" },
+    { role: "Frontend Dev", match: 85, skills: "9/10 skills", color: "#3b82f6" },
+    { role: "Backend Dev", match: 60, skills: "6/10 skills", color: "#f59e0b" },
+  ]
+
+  const COLORS = roleData.map(r => r.color)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Role-Relevant Skills Match</CardTitle>
+        <CardDescription>Based on your target roles from the questionnaire</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={roleData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="match"
+                  label={(entry) => `${entry.match}%`}
+                >
+                  {roleData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="space-y-4">
+            {roleData.map((role, index) => (
+              <div key={role.role} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: COLORS[index] }}
+                    />
+                    <span className="font-semibold">{role.role}</span>
+                  </div>
+                  <Badge>{role.match}%</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground pl-5">{role.skills}</p>
+                <div className="relative h-2 w-full rounded-full overflow-hidden bg-muted pl-5">
+                  <div
+                    className="h-full transition-all"
+                    style={{ width: `${role.match}%`, backgroundColor: COLORS[index] }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ========================
+// MAIN DASHBOARD
+// ========================
+
 export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState("overall")
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="mx-auto max-w-7xl">
@@ -495,31 +742,187 @@ export default function DashboardPage() {
           <p className="mt-2 text-muted-foreground">Your personalized insights and recommendations</p>
         </div>
 
-        <div className="grid gap-6">
-          <GPAProgressBar gpa={mockStudentData.gpa} />
-          
-          <YearInSchoolIndicator currentYear={mockStudentData.yearInSchool} />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4 mx-auto">
+            <TabsTrigger value="overall" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Overall
+            </TabsTrigger>
+            <TabsTrigger value="education" className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4" />
+              Education
+            </TabsTrigger>
+            <TabsTrigger value="projects" className="flex items-center gap-2">
+              <FolderKanban className="h-4 w-4" />
+              Projects
+            </TabsTrigger>
+            <TabsTrigger value="experience" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Experience
+            </TabsTrigger>
+          </TabsList>
 
-          <ResumeCompletenessScore {...mockStudentData.resume} />
+          <TabsContent value="overall" className="space-y-6">
+            <Accordion type="multiple" className="space-y-4" defaultValue={["skills-overview", "tech-overview", "resume-overview"]}>
+              <AccordionItem value="skills-overview" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Code className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Skills Portfolio (Spider Web)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <SkillsRadarChart skills={mockStudentData.skills} />
+                </AccordionContent>
+              </AccordionItem>
 
-          <CareerPathCourseworkChart />
+              <AccordionItem value="tech-overview" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Technology Stack Alignment</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <TechStackAlignment />
+                </AccordionContent>
+              </AccordionItem>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>More Insights Coming Soon</CardTitle>
-              <CardDescription>
-                Additional visualizations will appear here
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Skills analysis, project portfolio, and more...
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+              <AccordionItem value="resume-overview" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Resume Completeness</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ResumeCompletenessScore resume={mockStudentData.resume} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </TabsContent>
+
+          <TabsContent value="education" className="space-y-6">
+            <Accordion type="multiple" className="space-y-4" defaultValue={["gpa", "year", "skills", "tech", "coursework"]}>
+              <AccordionItem value="gpa" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">GPA Analysis</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <GPAProgressBar gpa={mockStudentData.gpa} />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="year" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Academic Progress</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <YearInSchoolIndicator currentYear={mockStudentData.yearInSchool} />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="skills" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Code className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Skills Portfolio (Spider Web)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <SkillsRadarChart skills={mockStudentData.skills} />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="tech" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Technology Stack Alignment</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <TechStackAlignment />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="coursework" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Career Path Coursework (Radar)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CareerPathCourseworkChart />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </TabsContent>
+
+          <TabsContent value="projects" className="space-y-6">
+            <Accordion type="multiple" className="space-y-4" defaultValue={["portfolio", "resume"]}>
+              <AccordionItem value="portfolio" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <FolderKanban className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Project Portfolio</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ProjectPortfolioCounter projectCount={mockStudentData.projectCount} />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="resume" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Resume Completeness</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ResumeCompletenessScore resume={mockStudentData.resume} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </TabsContent>
+
+          <TabsContent value="experience" className="space-y-6">
+            <Accordion type="multiple" className="space-y-4" defaultValue={["internships", "roles"]}>
+              <AccordionItem value="internships" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Internship Experience</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <InternshipCounter internshipCount={mockStudentData.internshipCount} />
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="roles" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Role-Relevant Skills Match</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <RoleSkillsMatch />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
 }
-
