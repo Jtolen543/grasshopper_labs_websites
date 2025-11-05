@@ -72,6 +72,22 @@ export default function QuestionnaireForm() {
     setValue(currentStepId, updated, { shouldValidate: true })
   }
 
+  const autoFillAndSubmit = () => {
+    // Auto-select the first option for each step
+    steps.forEach((step) => {
+      const stepId = step.id as keyof QuestionnaireData
+      const options = questionnaireOptions[stepId]
+      if (options && options.length > 0) {
+        setValue(stepId, [options[0]], { shouldValidate: true })
+      }
+    })
+    
+    // Trigger form submission after a brief delay to ensure values are set
+    setTimeout(() => {
+      handleSubmit(onSubmit)()
+    }, 100)
+  }
+
   const canProceed = () => {
     return currentValues && currentValues.length > 0
   }
@@ -190,20 +206,31 @@ export default function QuestionnaireForm() {
 
           {currentError && <p className="text-sm text-destructive">{currentError.message}</p>}
 
-          <div className="flex gap-3 pt-4">
+          <div className="space-y-3 pt-4">
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentStep === 0}
+                className="flex-1 bg-transparent"
+              >
+                <ChevronLeft className="size-4 mr-2" />
+                Previous
+              </Button>
+              <Button type="button" onClick={handleNext} disabled={!canProceed()} className="flex-1">
+                {currentStep === steps.length - 1 ? "Complete" : "Next"}
+                {currentStep < steps.length - 1 && <ChevronRight className="size-4 ml-2" />}
+              </Button>
+            </div>
+            
             <Button
               type="button"
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentStep === 0}
-              className="flex-1 bg-transparent"
+              variant="secondary"
+              onClick={autoFillAndSubmit}
+              className="w-full"
             >
-              <ChevronLeft className="size-4 mr-2" />
-              Previous
-            </Button>
-            <Button type="button" onClick={handleNext} disabled={!canProceed()} className="flex-1">
-              {currentStep === steps.length - 1 ? "Complete" : "Next"}
-              {currentStep < steps.length - 1 && <ChevronRight className="size-4 ml-2" />}
+              Skip to Dashboard (Auto-fill)
             </Button>
           </div>
         </CardContent>

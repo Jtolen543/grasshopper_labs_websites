@@ -15,6 +15,10 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, PieChart, Pie, Cell
 } from "recharts"
+import { useResume } from "@/contexts/resume-context"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 // Mock data - replace with actual resume data later
 const mockStudentData = {
@@ -27,7 +31,7 @@ const mockStudentData = {
     frameworks: ["React", "Next.js", "Node.js", "Express"],
     databases: ["PostgreSQL", "MongoDB"],
     devops: ["Docker", "Git"],
-    certifications: [],
+    certifications: [] as string[],
   },
   resume: {
     hasGithub: true,
@@ -41,6 +45,24 @@ const mockStudentData = {
 }
 
 const INTERNSHIP_AVG_GPA = 3.6
+
+// Helper function to calculate year in school from graduation date
+function calculateYearInSchool(endDate?: string): number {
+  if (!endDate) return 1
+  
+  const gradYear = new Date(endDate).getFullYear()
+  const currentYear = new Date().getFullYear()
+  const yearsUntilGrad = gradYear - currentYear
+  
+  // If they're graduating this year or have graduated, they're a senior (year 4)
+  if (yearsUntilGrad <= 0) return 4
+  // If graduating next year, they're a junior (year 3)
+  if (yearsUntilGrad === 1) return 3
+  // If graduating in 2 years, they're a sophomore (year 2)
+  if (yearsUntilGrad === 2) return 2
+  // Otherwise freshman (year 1)
+  return 1
+}
 
 // ========================
 // EDUCATION TAB COMPONENTS
@@ -733,6 +755,84 @@ function RoleSkillsMatch() {
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overall")
+  const { resumeData, isLoading } = useResume()
+
+  // Extract data from resume or use mock data
+  const studentData = resumeData ? {
+    gpa: resumeData.education?.[0]?.gpa || 0,
+    yearInSchool: calculateYearInSchool(resumeData.education?.[0]?.end_date),
+    internshipCount: resumeData.experience?.filter(exp => 
+      exp.position.toLowerCase().includes('intern')
+    ).length || 0,
+    projectCount: resumeData.projects?.length || 0,
+    skills: {
+      programmingLanguages: resumeData.skills?.programming_languages || [],
+      frameworks: resumeData.skills?.frameworks || [],
+      databases: resumeData.skills?.databases || [],
+      devops: resumeData.skills?.devops_tools || [],
+      certifications: resumeData.certifications?.map(cert => cert.name) || [],
+    },
+    resume: {
+      hasGithub: !!resumeData.basics?.github,
+      hasLinkedIn: !!resumeData.basics?.linkedin,
+      hasPortfolio: !!resumeData.basics?.portfolio,
+      hasProjects: (resumeData.projects?.length || 0) > 0,
+      hasExperience: (resumeData.experience?.length || 0) > 0,
+      hasCertifications: (resumeData.certifications?.length || 0) > 0,
+      hasExtracurriculars: (resumeData.extracurriculars?.length || 0) > 0,
+    },
+  } : mockStudentData
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
+            <p className="mt-2 text-muted-foreground">Your personalized insights and recommendations</p>
+          </div>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+              <p className="mt-4 text-muted-foreground">Loading your resume data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if no resume data
+  if (!resumeData) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
+            <p className="mt-2 text-muted-foreground">Your personalized insights and recommendations</p>
+          </div>
+
+          <Alert className="mb-6">
+            <AlertTitle className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              No Resume Data Found
+            </AlertTitle>
+            <AlertDescription>
+              <p className="mb-4">Upload and verify your resume to see your personalized dashboard with real data.</p>
+              <Button asChild>
+                <Link href="/">Upload Resume</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+
+          <div className="text-muted-foreground">
+            <p>Using mock data for demonstration purposes...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -772,7 +872,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <SkillsRadarChart skills={mockStudentData.skills} />
+                  <SkillsRadarChart skills={studentData.skills} />
                 </AccordionContent>
               </AccordionItem>
 
@@ -796,7 +896,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ResumeCompletenessScore resume={mockStudentData.resume} />
+                  <ResumeCompletenessScore resume={studentData.resume} />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -812,7 +912,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <GPAProgressBar gpa={mockStudentData.gpa} />
+                  <GPAProgressBar gpa={studentData.gpa} />
                 </AccordionContent>
               </AccordionItem>
 
@@ -824,7 +924,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <YearInSchoolIndicator currentYear={mockStudentData.yearInSchool} />
+                  <YearInSchoolIndicator currentYear={studentData.yearInSchool} />
                 </AccordionContent>
               </AccordionItem>
 
@@ -836,7 +936,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <SkillsRadarChart skills={mockStudentData.skills} />
+                  <SkillsRadarChart skills={studentData.skills} />
                 </AccordionContent>
               </AccordionItem>
 
@@ -876,7 +976,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ProjectPortfolioCounter projectCount={mockStudentData.projectCount} />
+                  <ProjectPortfolioCounter projectCount={studentData.projectCount} />
                 </AccordionContent>
               </AccordionItem>
 
@@ -888,7 +988,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ResumeCompletenessScore resume={mockStudentData.resume} />
+                  <ResumeCompletenessScore resume={studentData.resume} />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -904,7 +1004,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <InternshipCounter internshipCount={mockStudentData.internshipCount} />
+                  <InternshipCounter internshipCount={studentData.internshipCount} />
                 </AccordionContent>
               </AccordionItem>
 
