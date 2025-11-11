@@ -5,6 +5,7 @@ import { existsSync } from "fs"
 
 const RESUME_DATA_DIR = join(process.cwd(), "data")
 const RESUME_DATA_FILE = join(RESUME_DATA_DIR, "resume-data.json")
+const MATCHED_COURSES_FILE = join(RESUME_DATA_DIR, "matched-courses.json")
 
 // Ensure data directory exists
 async function ensureDataDir() {
@@ -78,10 +79,15 @@ export async function DELETE() {
     if (existsSync(RESUME_DATA_FILE)) {
       await writeFile(RESUME_DATA_FILE, JSON.stringify(null), "utf-8")
     }
+    
+    // Also clear matched courses when resume is deleted
+    if (existsSync(MATCHED_COURSES_FILE)) {
+      await writeFile(MATCHED_COURSES_FILE, JSON.stringify(null), "utf-8")
+    }
 
     return NextResponse.json({ 
       success: true, 
-      message: "Resume data cleared successfully" 
+      message: "Resume data and matched courses cleared successfully" 
     })
   } catch (error) {
     console.error("Error clearing resume data:", error)

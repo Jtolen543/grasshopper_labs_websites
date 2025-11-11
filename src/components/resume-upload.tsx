@@ -191,7 +191,23 @@ export function ResumeUpload() {
       const result = await response.json()
       
       if (result.success) {
-        toast.success("Resume data confirmed and saved to file!")
+        toast.success("Resume data confirmed and saved!")
+        
+        // Automatically trigger course matching after resume is saved
+        toast.info("Analyzing your coursework...")
+        try {
+          const matchResponse = await fetch("/api/match-coursework?threshold=80")
+          const matchData = await matchResponse.json()
+          
+          if (matchData.success) {
+            toast.success("Coursework analysis complete!")
+          } else {
+            toast.warning("Course matching completed with warnings")
+          }
+        } catch (matchError) {
+          console.error("Error matching coursework:", matchError)
+          toast.warning("Resume saved, but coursework analysis failed")
+        }
       } else {
         toast.warning("Resume data saved to memory, but file save failed")
       }
