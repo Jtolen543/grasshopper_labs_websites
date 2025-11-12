@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -810,7 +810,7 @@ export default function DashboardPage() {
 
   const [questionnaireData, setQuestionnaireData] = useState<any>(null)
 
-  if (window) {
+  if (typeof window !== "undefined") {
     const content = localStorage.getItem("questionnaireData")
     if (content) setQuestionnaireData(JSON.parse(content))
   } 
