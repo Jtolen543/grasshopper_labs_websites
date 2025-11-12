@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner"
 import { StudentPreferences, type StudentPreferences as StudentPreferencesType } from "@/components/student-preferences"
 import { ResumeVerification } from "@/components/resume-verification"
+import { useResume } from "@/contexts/resume-context"
 
 interface UploadedFile {
   name: string
@@ -33,6 +34,7 @@ interface ParseResult {
 }
 
 export function ResumeUpload() {
+  const { setResumeData } = useResume()
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle")
@@ -172,10 +174,33 @@ export function ResumeUpload() {
     setStudentPreferences(null)
   }
 
-  const handleVerificationConfirm = (data: Resume) => {
+  const handleVerificationConfirm = async (data: Resume) => {
     setVerifiedData(data)
+    setResumeData(data) // Save to global context
+    
+    // Save to JSON file
+    try {
+      const response = await fetch("/api/resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success("Resume data confirmed and saved to file!")
+      } else {
+        toast.warning("Resume data saved to memory, but file save failed")
+      }
+    } catch (error) {
+      console.error("Error saving resume to file:", error)
+      toast.warning("Resume data saved to memory only")
+    }
+    
     setShowVerification(false)
-    toast.success("Resume data confirmed!")
   }
 
   const handleVerificationCancel = () => {

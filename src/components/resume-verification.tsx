@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Edit2, Save, X } from "lucide-react"
+import { CheckCircle, Edit2, Save, X, Plus } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 import {
   Dialog,
@@ -133,6 +133,41 @@ export function ResumeVerification({ parsedData, onConfirm, onCancel, open }: Re
     })
   }
 
+  const handleCertificationChange = (index: number, field: string, value: string) => {
+    const newCertifications = [...editedData.certifications]
+    newCertifications[index] = {
+      ...newCertifications[index],
+      [field]: value,
+    }
+    setEditedData({
+      ...editedData,
+      certifications: newCertifications,
+    })
+  }
+
+  const addCertification = () => {
+    setEditedData({
+      ...editedData,
+      certifications: [
+        ...editedData.certifications,
+        {
+          name: "",
+          issuer: "",
+          date: "",
+          credential_id: "",
+          url: "",
+        },
+      ],
+    })
+  }
+
+  const removeCertification = (index: number) => {
+    setEditedData({
+      ...editedData,
+      certifications: editedData.certifications.filter((_, idx) => idx !== index),
+    })
+  }
+
   const handleConfirm = () => {
     onConfirm(editedData)
   }
@@ -259,6 +294,21 @@ export function ResumeVerification({ parsedData, onConfirm, onCancel, open }: Re
                 />
               ) : (
                 <p className="mt-1">{editedData.basics.github || "N/A"}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Portfolio</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedData.basics.portfolio}
+                  onChange={(e) => handleBasicsChange("portfolio", e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  placeholder="https://yourportfolio.com"
+                />
+              ) : (
+                <p className="mt-1">{editedData.basics.portfolio || "N/A"}</p>
               )}
             </div>
           </div>
@@ -701,22 +751,129 @@ export function ResumeVerification({ parsedData, onConfirm, onCancel, open }: Re
         {/* Certifications */}
         {editedData.certifications && editedData.certifications.length > 0 && (
           <div className="space-y-3">
-            <h4 className="font-semibold text-base border-b pb-2">Certifications</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-base border-b pb-2 flex-1">Certifications</h4>
+              {isEditing && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addCertification}
+                  className="ml-2"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              )}
+            </div>
             {editedData.certifications.map((cert, idx) => (
-              <div key={idx} className="bg-muted/30 p-4 rounded-lg space-y-2">
-                <p className="font-medium">{cert.name}</p>
-                {cert.issuer && <p className="text-sm text-muted-foreground">{cert.issuer}</p>}
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  {cert.date && <span>{cert.date}</span>}
-                  {cert.credential_id && <span>• ID: {cert.credential_id}</span>}
-                </div>
-                {cert.url && (
-                  <a href={cert.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
-                    View Certificate
-                  </a>
+              <div key={idx} className="bg-muted/30 p-4 rounded-lg space-y-3">
+                {isEditing && (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeCertification(idx)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Certification Name</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={cert.name}
+                        onChange={(e) => handleCertificationChange(idx, "name", e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="AWS Certified Developer"
+                      />
+                    ) : (
+                      <p className="mt-1 font-medium">{cert.name}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Issuer</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={cert.issuer}
+                        onChange={(e) => handleCertificationChange(idx, "issuer", e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="Amazon Web Services"
+                      />
+                    ) : (
+                      <p className="mt-1 text-sm text-muted-foreground">{cert.issuer}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Date</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={cert.date}
+                        onChange={(e) => handleCertificationChange(idx, "date", e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="January 2024"
+                      />
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">{cert.date}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Credential ID</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={cert.credential_id}
+                        onChange={(e) => handleCertificationChange(idx, "credential_id", e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="ABC123XYZ"
+                      />
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">{cert.credential_id || "N/A"}</p>
+                    )}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Certificate URL</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={cert.url}
+                        onChange={(e) => handleCertificationChange(idx, "url", e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border rounded-md"
+                        placeholder="https://..."
+                      />
+                    ) : cert.url ? (
+                      <a href={cert.url} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs text-blue-600 hover:underline block">
+                        View Certificate
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">N/A</p>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Add Certification button if none exist */}
+        {isEditing && (!editedData.certifications || editedData.certifications.length === 0) && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-semibold text-base">Certifications</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addCertification}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Certification
+              </Button>
+            </div>
           </div>
         )}
 
