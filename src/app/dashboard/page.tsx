@@ -441,26 +441,47 @@ function TechStackAlignment() {
   )
 }
 
+const mockProjects: Project[] = [
+  { name: "Portfolio Website", category: "Web", completedAt: "2025-09-10", teamSize: 1 },
+  { name: "VR Game", category: "XR", completedAt: "2025-06-22", teamSize: 3 },
+  { name: "Mobile App", category: "Mobile", completedAt: "2025-08-01", teamSize: 2 },
+  { name: "Data Analysis Tool", category: "Data", completedAt: "2025-07-15", teamSize: 1 },
+  { name: "E-commerce Platform", category: "Web", completedAt: "2025-05-10", teamSize: 4 },
+]
 
-function ProjectPortfolioCounter({ projectCount }: { projectCount: number }) {
+interface Project {
+  name: string
+  category: "Web" | "Mobile" | "XR" | "Data" | "Other"
+  completedAt: string // ISO date string
+  teamSize?: number
+}
+
+function ProjectPortfolioSummary({ projects }: { projects: Project[] }) {
+  const projectCount = projects.length
+
+  const categoryCounts = projects.reduce<Record<string, number>>((acc, p) => {
+    acc[p.category] = (acc[p.category] || 0) + 1
+    return acc
+  }, {})
+
   const getProjectStatus = (count: number) => {
     if (count <= 1) return { 
       status: "Build More", 
-      message: "Build more projects to showcase your skills!", 
+      message: "You only have a few projects. Focus on building diverse hands-on experience!", 
       color: "text-amber-600",
       bgColor: "bg-amber-50 dark:bg-amber-950/20",
       borderColor: "border-amber-200 dark:border-amber-900"
     }
     if (count <= 3) return { 
       status: "Good Portfolio", 
-      message: "Good portfolio! Consider adding 1-2 more diverse projects.", 
+      message: "Good start! Add a few more projects in different categories to strengthen your portfolio.", 
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-950/20",
       borderColor: "border-green-200 dark:border-green-900"
     }
     return { 
       status: "Impressive!", 
-      message: "Impressive portfolio! Great demonstration of hands-on experience.", 
+      message: "Impressive portfolio! Shows solid experience across multiple domains.", 
       color: "text-emerald-600",
       bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
       borderColor: "border-emerald-200 dark:border-emerald-900"
@@ -473,40 +494,44 @@ function ProjectPortfolioCounter({ projectCount }: { projectCount: number }) {
     <Card>
       <CardHeader>
         <CardTitle>Project Portfolio</CardTitle>
-        <CardDescription>Your project count and quality indicators</CardDescription>
+        <CardDescription>Insights into your projects and skill coverage</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Total Projects */}
         <div className="flex items-center justify-center">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-primary/10 mb-4">
-              <FolderKanban className="h-16 w-16 text-primary" />
-            </div>
             <p className="text-6xl font-bold">{projectCount}</p>
             <p className="text-muted-foreground">Total Projects</p>
           </div>
         </div>
 
+        {/* Status */}
         <div className={cn("p-4 rounded-lg border", status.bgColor, status.borderColor)}>
           <div className="flex items-start gap-3">
             <Star className={cn("h-5 w-5 mt-0.5", status.color)} />
             <div>
               <h4 className={cn("font-semibold", status.color)}>{status.status}</h4>
               <p className="text-sm text-muted-foreground mt-1">{status.message}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Categories: {Object.entries(categoryCounts).map(([cat, count]) => `${cat} (${count})`).join(", ")}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
-          {Array.from({ length: Math.min(projectCount, 8) }).map((_, i) => (
-            <div key={i} className="aspect-square bg-primary/20 rounded-lg flex items-center justify-center">
-              <FolderKanban className="h-6 w-6 text-primary" />
+        {/* Project List */}
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {projects.map((p, i) => (
+            <div
+              key={i}
+              className="p-2 border rounded-lg flex flex-col bg-muted/5 dark:bg-muted/20"
+            >
+              <p className="font-semibold">{p.name}</p>
+              <p className="text-xs text-muted-foreground">
+                Category: {p.category} | Completed: {new Date(p.completedAt).toLocaleDateString()} | Team Size: {p.teamSize}
+              </p>
             </div>
           ))}
-          {projectCount > 8 && (
-            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-              <span className="text-sm font-bold">+{projectCount - 8}</span>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
@@ -608,8 +633,34 @@ function ResumeCompletenessScore({ resume }: { resume: typeof mockStudentData.re
   )
 }
 
+const mockInternships: Internship[] = [
+  {
+    company: "Apple",
+    role: "Hardware Engineering Intern",
+    startDate: "2025-06-01",
+    endDate: "2025-08-15",
+    description: "Worked on testing electrical sub-systems for XR products."
+  },
+  {
+    company: "Google",
+    role: "Software Engineering Intern",
+    startDate: "2024-06-01",
+    endDate: "2024-08-15",
+    description: "Implemented a dashboard for analytics tools using React."
+  },
+]
 
-function InternshipCounter({ internshipCount }: { internshipCount: number }) {
+interface Internship {
+  company: string
+  role: string
+  startDate: string // ISO string
+  endDate?: string
+  description?: string
+}
+
+function InternshipSummary({ internships }: { internships: Internship[] }) {
+  const internshipCount = internships.length
+
   const getInternshipStatus = (count: number) => {
     if (count === 0) return {
       message: "No worries! Everyone starts somewhere. We'll help you land your first opportunity!",
@@ -636,18 +687,17 @@ function InternshipCounter({ internshipCount }: { internshipCount: number }) {
 
   const status = getInternshipStatus(internshipCount)
   const Icon = status.icon
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Internship Experience</CardTitle>
-        <CardDescription>Your previous internship count</CardDescription>
+        <CardDescription>Insights into your previous internships</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Total internships */}
         <div className="flex items-center justify-center">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-primary/10 mb-4">
-              <Icon className="h-16 w-16 text-primary" />
-            </div>
             <p className="text-6xl font-bold">{internshipCount}</p>
             <p className="text-muted-foreground">
               {internshipCount === 1 ? "Internship" : "Internships"}
@@ -655,20 +705,26 @@ function InternshipCounter({ internshipCount }: { internshipCount: number }) {
           </div>
         </div>
 
+        {/* Status box */}
         <div className={cn("p-4 rounded-lg border", status.bgColor, status.borderColor)}>
           <p className={cn("text-sm font-medium", status.color)}>{status.message}</p>
         </div>
 
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: Math.max(internshipCount, 3) }).map((_, i) => (
+        {/* Internship list */}
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {internships.map((i, idx) => (
             <div
-              key={i}
-              className={cn(
-                "w-12 h-12 rounded-lg flex items-center justify-center transition-all",
-                i < internshipCount ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}
+              key={idx}
+              className="p-2 border rounded-lg flex flex-col bg-muted/5 dark:bg-muted/20"
             >
-              <Briefcase className="h-6 w-6" />
+              <p className="font-semibold">{i.role} @ {i.company}</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(i.startDate).toLocaleDateString()} 
+                {i.endDate ? ` - ${new Date(i.endDate).toLocaleDateString()}` : " - Present"}
+              </p>
+              {i.description && (
+                <p className="text-xs text-muted-foreground mt-1">{i.description}</p>
+              )}
             </div>
           ))}
         </div>
@@ -676,6 +732,7 @@ function InternshipCounter({ internshipCount }: { internshipCount: number }) {
     </Card>
   )
 }
+
 
 function RoleSkillsMatch() {
   const roleData = [
@@ -872,7 +929,19 @@ export default function DashboardPage() {
           </TabsList>
 
           <TabsContent value="overall" className="space-y-6">
-            <Accordion type="multiple" className="space-y-4" defaultValue={["skills-overview", "tech-overview", "resume-overview"]}>
+            <Accordion type="multiple" className="space-y-4" defaultValue={["coursework", "skills-overview", "tech-overview", "resume-overview"]}>
+              <AccordionItem value="coursework" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Career Path Coursework (Radar)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CareerPathCourseworkChart />
+                </AccordionContent>
+              </AccordionItem>
+
               <AccordionItem value="skills-overview" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2">
@@ -960,18 +1029,6 @@ export default function DashboardPage() {
                   <TechStackAlignment />
                 </AccordionContent>
               </AccordionItem>
-
-              <AccordionItem value="coursework" className="border rounded-lg px-4">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Database className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Career Path Coursework (Radar)</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <CareerPathCourseworkChart />
-                </AccordionContent>
-              </AccordionItem>
             </Accordion>
           </TabsContent>
 
@@ -985,7 +1042,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ProjectPortfolioCounter projectCount={studentData.projectCount} />
+                  <ProjectPortfolioSummary projects={mockProjects} />
                 </AccordionContent>
               </AccordionItem>
 
@@ -1013,7 +1070,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <InternshipCounter internshipCount={studentData.internshipCount} />
+                  <InternshipSummary internships={mockInternships} />
                 </AccordionContent>
               </AccordionItem>
 
