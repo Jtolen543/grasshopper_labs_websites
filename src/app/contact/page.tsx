@@ -6,10 +6,10 @@ export default function ContactPage() {
         Have questions or feedback? We’d love to hear from you!
       </p>
       <a
-        href="mailto:support@resumehub.com"
+        href="mailto:w.harris@ufl.edu"
         className="text-primary hover:underline"
       >
-        support@resumehub.com
+        w.harris@ufl.edu
       </a>
     </div>
   )
