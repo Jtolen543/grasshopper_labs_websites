@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,9 +11,17 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CareerPathCourseworkChart } from "@/components/career-path-radar"
-import { 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
-  ResponsiveContainer, Tooltip, PieChart, Pie, Cell
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts"
 import { useResume } from "@/contexts/resume-context"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -28,7 +36,7 @@ const mockStudentData = {
   projectCount: 4,
   skills: {
     programmingLanguages: ["JavaScript", "Python", "TypeScript", "Java"],
-    frameworks: ["React", "Next.js", "Node.js", "Express"],
+    frameworks: ["React", "Next.js", "Node  .js", "Express"],
     databases: ["PostgreSQL", "MongoDB"],
     devops: ["Docker", "Git"],
     certifications: [] as string[],
@@ -63,10 +71,6 @@ function calculateYearInSchool(endDate?: string): number {
   // Otherwise freshman (year 1)
   return 1
 }
-
-// ========================
-// EDUCATION TAB COMPONENTS
-// ========================
 
 // GPA Component
 function GPAProgressBar({ gpa }: { gpa: number }) {
@@ -437,9 +441,6 @@ function TechStackAlignment() {
   )
 }
 
-// ========================
-// PROJECTS TAB COMPONENTS
-// ========================
 
 function ProjectPortfolioCounter({ projectCount }: { projectCount: number }) {
   const getProjectStatus = (count: number) => {
@@ -607,9 +608,6 @@ function ResumeCompletenessScore({ resume }: { resume: typeof mockStudentData.re
   )
 }
 
-// ========================
-// EXPERIENCE TAB COMPONENTS
-// ========================
 
 function InternshipCounter({ internshipCount }: { internshipCount: number }) {
   const getInternshipStatus = (count: number) => {
@@ -638,7 +636,6 @@ function InternshipCounter({ internshipCount }: { internshipCount: number }) {
 
   const status = getInternshipStatus(internshipCount)
   const Icon = status.icon
-
   return (
     <Card>
       <CardHeader>
@@ -749,39 +746,51 @@ function RoleSkillsMatch() {
   )
 }
 
-// ========================
-// MAIN DASHBOARD
-// ========================
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overall")
   const { resumeData, isLoading } = useResume()
 
+  const [questionnaireData, setQuestionnaireData] = useState<any>(null)
+
+  // ✅ Load questionnaire data when the page mounts
+  useEffect(() => {
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem("questionnaireData") : null
+      if (stored) {
+        setQuestionnaireData(JSON.parse(stored))
+      }
+    } catch (e) {
+      // ignore parse/localStorage errors
+    }
+  }, [])
+
   // Extract data from resume or use mock data
-  const studentData = resumeData ? {
-    gpa: resumeData.education?.[0]?.gpa || 0,
-    yearInSchool: calculateYearInSchool(resumeData.education?.[0]?.end_date),
-    internshipCount: resumeData.experience?.filter(exp => 
-      exp.position.toLowerCase().includes('intern')
-    ).length || 0,
-    projectCount: resumeData.projects?.length || 0,
-    skills: {
-      programmingLanguages: resumeData.skills?.programming_languages || [],
-      frameworks: resumeData.skills?.frameworks || [],
-      databases: resumeData.skills?.databases || [],
-      devops: resumeData.skills?.devops_tools || [],
-      certifications: resumeData.certifications?.map(cert => cert.name) || [],
-    },
-    resume: {
-      hasGithub: !!resumeData.basics?.github,
-      hasLinkedIn: !!resumeData.basics?.linkedin,
-      hasPortfolio: !!resumeData.basics?.portfolio,
-      hasProjects: (resumeData.projects?.length || 0) > 0,
-      hasExperience: (resumeData.experience?.length || 0) > 0,
-      hasCertifications: (resumeData.certifications?.length || 0) > 0,
-      hasExtracurriculars: (resumeData.extracurriculars?.length || 0) > 0,
-    },
-  } : mockStudentData
+  const studentData = resumeData
+    ? {
+        gpa: resumeData.education?.[0]?.gpa || 0,
+        yearInSchool: calculateYearInSchool(resumeData.education?.[0]?.end_date),
+        internshipCount:
+          resumeData.experience?.filter((exp: any) => exp.position.toLowerCase().includes("intern")).length || 0,
+        projectCount: resumeData.projects?.length || 0,
+        skills: {
+          programmingLanguages: resumeData.skills?.programming_languages || [],
+          frameworks: resumeData.skills?.frameworks || [],
+          databases: resumeData.skills?.databases || [],
+          devops: resumeData.skills?.devops_tools || [],
+          certifications: resumeData.certifications?.map((cert: any) => cert.name) || [],
+        },
+        resume: {
+          hasGithub: !!resumeData.basics?.github,
+          hasLinkedIn: !!resumeData.basics?.linkedin,
+          hasPortfolio: !!resumeData.basics?.portfolio,
+          hasProjects: (resumeData.projects?.length || 0) > 0,
+          hasExperience: (resumeData.experience?.length || 0) > 0,
+          hasCertifications: (resumeData.certifications?.length || 0) > 0,
+          hasExtracurriculars: (resumeData.extracurriculars?.length || 0) > 0,
+        },
+      }
+    : mockStudentData
 
   // Show loading state
   if (isLoading) {

@@ -111,6 +111,9 @@ export default function QuestionnaireForm() {
   const onSubmit = (data: QuestionnaireData) => {
     setJsonOutput(data)
     setIsComplete(true)
+
+    // Save data to localStorage (so dashboard can read it)
+    localStorage.setItem("questionnaireData", JSON.stringify(data))
   }
 
   if (isComplete && jsonOutput) {
