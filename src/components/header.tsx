@@ -1,5 +1,13 @@
+"use client"
+
 import Link from "next/link"
 import { FileText, Menu } from "lucide-react"
+import {
+  SignedIn,
+  SignedOut,
+  SignOutButton,
+  UserButton,
+} from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "./theme-provider"
 
@@ -32,7 +40,29 @@ export function Header() {
 
           <div className="flex items-center gap-4">
             <ModeToggle />
-            <Button className="hidden md:inline-flex">Get Started</Button>
+            <SignedOut>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" asChild>
+                  <Link href="/sign-in">Log in</Link>
+                </Button>
+                <Button className="hidden md:inline-flex" asChild>
+                  <Link href="/sign-up">Get Started</Link>
+                </Button>
+              </div>
+            </SignedOut>
+            <SignedIn>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" className="hidden md:inline-flex" asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+                <SignOutButton redirectUrl="/">
+                  <Button variant="ghost">
+                    Log out
+                  </Button>
+                </SignOutButton>
+                <UserButton />
+              </div>
+            </SignedIn>
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
             </Button>

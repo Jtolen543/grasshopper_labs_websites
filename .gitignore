@@ -46,3 +46,5 @@ uploads/
 # resume data storage
 /data/
 data/resume-data.json
+# clerk configuration (can include secrets)
+/.clerk/
