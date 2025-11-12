@@ -1,0 +1,67 @@
+1) GPA Progress Bar - Color-coded horizontal progress bar showing GPA positioning:
+   - < 3.0 as red (Needs Improvement)
+   - 3.0-3.3 as orange (Fair)
+   - 3.4-3.6 as yellow (Good)
+   - 3.6-3.8 as light green (Very Good)
+   - 3.8-4.0 as dark green (Excellent)
+   Show where student lands based on their GPA from resume. Include a marker/line showing the average GPA of students who successfully got internships as a target benchmark. Provides instant visual feedback on academic standing and competitiveness.
+
+2) Year-in-School Progress Indicator - Visual timeline or stepper showing academic progression (Year 1-4):
+   - Highlight current grade/year with emphasis
+   - For each year level, display brief summary of typical opportunities and potential:
+     * Year 1: "Focus on fundamentals, join clubs, start building portfolio"
+     * Year 2: "Seek first internship, develop technical projects, attend career fairs"
+     * Year 3: "Target competitive internships, strengthen resume, network actively"
+     * Year 4: "Apply for full-time roles, leverage experience, finalize portfolio"
+   Helps students understand where they are in their journey and what to focus on next.
+
+3) Role-Relevant Skills Match (Pie/Donut Chart) - Based on roles chosen from questionnaire, calculate and display percentage of relevant frameworks/technologies:
+   - Identify required skills for each target role (e.g., Frontend: React, Backend: Node.js, Database: PostgreSQL)
+   - Show match percentage: "You have 7/10 skills for Full Stack Developer (70%)"
+   - Break down by category:
+     * Frontend skills: 80% match
+     * Backend skills: 65% match
+     * Database skills: 50% match
+   Use donut chart with color-coded segments showing strength in each area. Helps students see which roles they're best positioned for and where to upskill.
+
+4) Internship Experience Counter with Contextual Feedback - Visual counter/badge system showing previous internship experience:
+   - Count internships from experience section of resume
+   - Display with encouraging, context-aware messaging:
+     * 0 internships: "No worries! Everyone starts somewhere. We'll help you land your first opportunity!" (Neutral blue)
+     * 1 internship: "Great start! Previous experience makes future opportunities easier to secure." (Green)
+     * 2+ internships: "Excellent position! You're highly competitive for top roles." (Gold/star icon)
+   Include small icon/badge visual (e.g., briefcase icons that fill in). Provides positive reinforcement and sets realistic expectations.
+
+5) Project Portfolio Counter - Simple numeric indicator with visual representation showing number of projects:
+   - Count projects from resume's projects section
+   - Display with quality indicators:
+     * 0-1 projects: "Build more projects to showcase your skills!" (Warning amber)
+     * 2-3 projects: "Good portfolio! Consider adding 1-2 more diverse projects." (Light green)
+     * 4+ projects: "Impressive portfolio! Great demonstration of hands-on experience." (Dark green)
+   - Optionally show project diversity score (how many different tech stacks used)
+   - Include small grid/card visual showing project count
+   Motivates students to build practical experience and demonstrates commitment to learning.
+
+
+6) Skills Portfolio Radar Chart - Multi-axis radar/spider chart showing skill depth across categories:
+   - Programming Languages (count)
+   - Frameworks/Libraries (count)
+   - Databases (count)
+   - DevOps/Cloud (count)
+   - Certifications (count)
+   Compare student's profile to "ideal" profile for their target role to show skill breadth vs depth at a glance
+
+7) Resume Completeness Score (Circular Progress) - Percentage gauge showing how complete their resume is:
+   - Has GitHub? (+15%)
+   - Has LinkedIn? (+10%)
+   - Has Portfolio? (+15%)
+   - Has Projects? (+20%)
+   - Has Experience? (+20%)
+   - Has Certifications? (+10%)
+   - Has Extracurriculars? (+10%)
+   Motivate students to fill gaps in their resume
+
+8) Technology Stack Alignment (Horizontal Bar Chart) - Show match % between student's skills and their selected tech sectors:
+   - "You have 8/12 AI/ML relevant skills (67%)"
+   - "You have 4/10 Cloud Computing skills (40%)"
+   Highlight top 3 skill gaps to learn to guide learning priorities

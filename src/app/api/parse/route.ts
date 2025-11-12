@@ -2,11 +2,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { join } from "path"
 import { existsSync } from "fs"
 import { extractWithChatGPT } from "./semanticParse"
+import { extractWithRegex } from "./regexParse"
+import { extractWithHuggingFace } from "./hfParse"
 import { parseFileContent } from "./parseContent"
 
 export async function POST(request: NextRequest) {
   try {
-    const { filename } = await request.json()
+    const { filename, method } = await request.json()
 
     if (!filename) {
       return NextResponse.json({ error: "No filename provided" }, { status: 400 })
@@ -19,10 +21,27 @@ export async function POST(request: NextRequest) {
     }
 
     const content = await parseFileContent(filepath, filename)
-    const data = await extractWithChatGPT(content)
+    
+    console.log(`Parsing with method: ${method}, content length: ${content.length}`);
+    
+    // Choose parsing method: 'regex', 'huggingface', or 'ai' (default)
+    let data
+    if (method === "regex") {
+      data = extractWithRegex(content)
+    } else if (method === "huggingface") {
+      data = await extractWithHuggingFace(content)
+    } else {
+      data = await extractWithChatGPT(content)
+    }
+    
+    console.log('Parsing completed successfully');
     return NextResponse.json(data)
   } catch (error) {
     console.error("Error parsing resume:", error)
-    return NextResponse.json({ error: "Failed to parse resume" }, { status: 500 })
+    console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+    return NextResponse.json({ 
+      error: "Failed to parse resume",
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }

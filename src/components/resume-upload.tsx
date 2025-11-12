@@ -5,17 +5,20 @@ import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Sparkles, RefreshCw, Edit, ArrowRight } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
+import { StudentPreferences, type StudentPreferences as StudentPreferencesType } from "@/components/student-preferences"
+import { ResumeVerification } from "@/components/resume-verification"
+import { useResume } from "@/contexts/resume-context"
 
 interface UploadedFile {
   name: string
@@ -31,12 +34,17 @@ interface ParseResult {
 }
 
 export function ResumeUpload() {
+  const { setResumeData } = useResume()
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
   const [parseResult, setParseResult] = useState<ParseResult | null>(null)
   const [isParsing, setIsParsing] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [verifiedData, setVerifiedData] = useState<Resume | null>(null)
+  const [showPreferences, setShowPreferences] = useState(false)
+  const [studentPreferences, setStudentPreferences] = useState<StudentPreferencesType | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true)
@@ -91,10 +99,12 @@ export function ResumeUpload() {
     maxSize: 10 * 1024 * 1024,
   })
 
-  const parseResume = async () => {
+  const parseResume = async (method: "ai" | "regex" | "huggingface" = "ai") => {
     if (!uploadedFile) return
 
     setIsParsing(true)
+    // Show preferences form immediately when parse button is clicked
+    setShowPreferences(true)
 
     try {
       const response = await fetch("/api/parse", {
@@ -102,18 +112,39 @@ export function ResumeUpload() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ filename: uploadedFile.filename }),
+        body: JSON.stringify({ 
+          filename: uploadedFile.filename,
+          method: method 
+        }),
       })
 
+      const result = await response.json()
+      
       if (!response.ok) {
-        throw new Error("Failed to parse")
+        console.error("API Error:", result)
+        throw new Error(result.message || result.error || "Failed to parse")
       }
 
-      const result = await response.json()
       setParseResult(result)
+      
+      // Log the full JSON output to console for debugging
+      console.log("==========================================")
+      console.log(`PARSED RESUME OUTPUT (${method.toUpperCase()} METHOD):`)
+      console.log("==========================================")
+      console.log(JSON.stringify(result, null, 2))
+      console.log("==========================================")
+      
+      // Show verification form after successful parse
+      if (result.details) {
+        setShowVerification(true)
+        const methodName = method === "ai" ? "AI" : method === "huggingface" ? "HuggingFace" : "Regex"
+        toast.success(`Resume parsed successfully using ${methodName} method!`)
+      }
     } catch (error) {
       console.error("Error parsing:", error)
       setParseResult({ details: null, missing: ["Failed to parse"] })
+      const errorMsg = error instanceof Error ? error.message : "Failed to parse resume"
+      toast.error(errorMsg)
     } finally {
       setIsParsing(false)
     }
@@ -130,13 +161,57 @@ export function ResumeUpload() {
       download.click()
     } else if (method === "clipboard") {
       await navigator.clipboard.writeText(data)
-
+      toast.info("Copied to Clipboard")
     }
   }
 
   const removeFile = () => {
     setUploadedFile(null)
     setParseResult(null)
+    setShowVerification(false)
+    setVerifiedData(null)
+    setShowPreferences(false)
+    setStudentPreferences(null)
+  }
+
+  const handleVerificationConfirm = async (data: Resume) => {
+    setVerifiedData(data)
+    setResumeData(data) // Save to global context
+    
+    // Save to JSON file
+    try {
+      const response = await fetch("/api/resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        toast.success("Resume data confirmed and saved to file!")
+      } else {
+        toast.warning("Resume data saved to memory, but file save failed")
+      }
+    } catch (error) {
+      console.error("Error saving resume to file:", error)
+      toast.warning("Resume data saved to memory only")
+    }
+    
+    setShowVerification(false)
+  }
+
+  const handleVerificationCancel = () => {
+    setShowVerification(false)
+    toast.info("Verification cancelled")
+  }
+
+  const handleEditResume = () => {
+    if (parseResult?.details) {
+      setShowVerification(true)
+    }
   }
 
   const formatFileSize = (bytes: number) => {
@@ -145,6 +220,18 @@ export function ResumeUpload() {
     const sizes = ["Bytes", "KB", "MB", "GB"]
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
+  const handlePreferencesSubmit = (preferences: StudentPreferencesType) => {
+    setStudentPreferences(preferences)
+    setShowPreferences(false)
+    console.log("Student Preferences:", preferences)
+    // You can add additional logic here, such as saving to a database
+  }
+
+  const handlePreferencesSkip = () => {
+    setShowPreferences(false)
+    console.log("Student skipped preferences")
   }
 
   const renderParseResult = (result: ParseResult) => {
@@ -404,28 +491,105 @@ export function ResumeUpload() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex gap-4">
-                  <Button onClick={parseResume} disabled={isParsing} variant="outline" size="sm">
-                    {isParsing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Rocket className="h-4 w-4 mr-2" fill="black" />
-                    )}
-                    Parse Resume
-                  </Button>
-                  {parseResult && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="border rounded-lg shadow-m px-2 font-medium text-sm flex gap-2 items-center hover:cursor-pointer hover:bg-primary/5 duration-150">
-                        <FileUp />
-                        Export as
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="hover:cursor-pointer">
-                        <DropdownMenuItem onClick={() => exportJSON("download")} className="hover:cursor-pointer">File</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
+                {!parseResult ? (
+                  <div className="flex gap-4 flex-wrap">
+                    <Button 
+                      onClick={() => parseResume("ai")} 
+                      disabled={isParsing} 
+                      variant="default" 
+                      size="sm"
+                    >
+                      {isParsing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Rocket className="h-4 w-4 mr-2" />
+                      )}
+                      Parse with AI
+                    </Button>
+                    <Button 
+                      onClick={() => parseResume("huggingface")} 
+                      disabled={isParsing} 
+                      variant="secondary" 
+                      size="sm"
+                    >
+                      {isParsing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-2" />
+                      )}
+                      Parse with HuggingFace
+                    </Button>
+                    <Button 
+                      onClick={() => parseResume("regex")} 
+                      disabled={isParsing} 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      {isParsing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
+                      Parse with Regex
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 flex-wrap justify-between w-full">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <Button variant="secondary" size="sm" onClick={handleEditResume}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="secondary" size="sm">
+                            <FileUp className="h-4 w-4 mr-2" />
+                            Export as
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="hover:cursor-pointer">
+                          <DropdownMenuItem onClick={() => exportJSON("download")} className="hover:cursor-pointer">File</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" disabled={isParsing}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Switch Parser
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => parseResume("ai")} className="hover:cursor-pointer">
+                            <Rocket className="h-4 w-4 mr-2" />
+                            Parse with AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => parseResume("huggingface")} className="hover:cursor-pointer">
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Parse with HuggingFace
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => parseResume("regex")} className="hover:cursor-pointer">
+                            <FileText className="h-4 w-4 mr-2" />
+                            Parse with Regex
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="group bg-primary hover:bg-primary/90 transition-all"
+                    >
+                      <Link href="/questionnaire" className="flex items-center gap-2">
+                        Fill out questionnaire
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
 
                 {parseResult && (
                   <div className="mt-4">
@@ -434,7 +598,10 @@ export function ResumeUpload() {
                         <Rocket className="h-4 w-4 mr-2" />
                         Parsing Results
                       </h3>
-                      {renderParseResult(parseResult)}
+                      {renderParseResult({
+                        details: verifiedData || parseResult.details,
+                        missing: parseResult.missing
+                      })}
                     </div>
                   </div>
                 )}
@@ -442,6 +609,15 @@ export function ResumeUpload() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {showVerification && parseResult?.details && (
+        <ResumeVerification
+          parsedData={parseResult.details}
+          onConfirm={handleVerificationConfirm}
+          onCancel={handleVerificationCancel}
+          open={showVerification}
+        />
       )}
     </div>
   )

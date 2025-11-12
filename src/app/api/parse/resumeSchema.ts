@@ -97,5 +97,36 @@ const ResumeSchema = z.object({
   extracurriculars: z.array(ExtracurricularItemSchema),
 });
 
+export function getResumeObject() {
+  const resume = ResumeSchema.parse({
+    basics: {
+      name: "",
+      email: "",
+      phone: "",
+      location: { city: "", state: "", country: "" },
+      linkedin: "",
+      github: "",
+      portfolio: "",
+    },
+    education: [],
+    skills: {
+      programming_languages: [],
+      frameworks: [],
+      libraries: [],
+      databases: [],
+      devops_tools: [],
+      cloud_platforms: [],
+      other: [],
+    },
+    projects: [],
+    experience: [],
+    achievements: [],
+    certifications: [],
+    publications: [],
+    extracurriculars: [],
+  });
+  return resume;
+}
+
 export type Resume = z.infer<typeof ResumeSchema>
 export default ResumeSchema
