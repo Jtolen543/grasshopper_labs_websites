@@ -810,17 +810,10 @@ export default function DashboardPage() {
 
   const [questionnaireData, setQuestionnaireData] = useState<any>(null)
 
-  // ✅ Load questionnaire data when the page mounts
-  useEffect(() => {
-    try {
-      const stored = typeof window !== 'undefined' ? localStorage.getItem("questionnaireData") : null
-      if (stored) {
-        setQuestionnaireData(JSON.parse(stored))
-      }
-    } catch (e) {
-      // ignore parse/localStorage errors
-    }
-  }, [])
+  if (window) {
+    const content = localStorage.getItem("questionnaireData")
+    if (content) setQuestionnaireData(JSON.parse(content))
+  } 
 
   // Extract data from resume or use mock data
   const studentData = resumeData
