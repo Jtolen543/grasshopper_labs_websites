@@ -122,7 +122,7 @@ export function StudentPreferences({ onSubmit, onSkip }: StudentPreferencesProps
         <div className="space-y-3">
           <div>
             <h4 className="font-semibold text-base mb-1">Target Roles</h4>
-            <p className="text-sm text-muted-foreground">Select all roles you're interested in</p>
+            <p className="text-sm text-muted-foreground">Select all roles you&apos;re interested in</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-4 border rounded-lg bg-muted/20">
             {ROLE_OPTIONS.map((role) => (
@@ -152,7 +152,7 @@ export function StudentPreferences({ onSubmit, onSkip }: StudentPreferencesProps
         <div className="space-y-3">
           <div>
             <h4 className="font-semibold text-base mb-1">Target Companies</h4>
-            <p className="text-sm text-muted-foreground">Select all companies you're interested in</p>
+            <p className="text-sm text-muted-foreground">Select all companies you&apos;re interested in</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-4 border rounded-lg bg-muted/20">
             {COMPANY_OPTIONS.map((company) => (

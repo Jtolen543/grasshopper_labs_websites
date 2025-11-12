@@ -125,7 +125,7 @@ export default function QuestionnaireForm() {
               <CheckCircle2 className="size-16 text-green-600" />
             </div>
             <CardTitle className="text-3xl">Questionnaire Complete!</CardTitle>
-            <CardDescription>Here's your JSON output</CardDescription>
+            <CardDescription>Here&apos;s your JSON output</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-muted p-4 rounded-lg overflow-auto max-h-[500px]">
