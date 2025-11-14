@@ -5,7 +5,7 @@ import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Sparkles, RefreshCw, Edit } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Edit } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -98,7 +98,7 @@ export function ResumeUpload() {
     maxSize: 10 * 1024 * 1024,
   })
 
-  const parseResume = async (method: "ai" | "regex" | "huggingface" = "ai") => {
+  const parseResume = async () => {
     if (!uploadedFile) return
 
     setIsParsing(true)
@@ -109,9 +109,8 @@ export function ResumeUpload() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           filename: uploadedFile.filename,
-          method: method 
         }),
       })
 
@@ -126,7 +125,7 @@ export function ResumeUpload() {
       
       // Log the full JSON output to console for debugging
       console.log("==========================================")
-      console.log(`PARSED RESUME OUTPUT (${method.toUpperCase()} METHOD):`)
+      console.log("PARSED RESUME OUTPUT (SEMANTIC PARSER):")
       console.log("==========================================")
       console.log(JSON.stringify(result, null, 2))
       console.log("==========================================")
@@ -134,8 +133,7 @@ export function ResumeUpload() {
       // Show verification form after successful parse
       if (result.details) {
         setShowVerification(true)
-        const methodName = method === "ai" ? "AI" : method === "huggingface" ? "HuggingFace" : "Regex"
-        toast.success(`Resume parsed successfully using ${methodName} method!`)
+        toast.success("Resume parsed successfully with AI!")
       }
     } catch (error) {
       console.error("Error parsing:", error)
@@ -497,7 +495,7 @@ export function ResumeUpload() {
                 {!parseResult ? (
                   <div className="flex gap-4 flex-wrap">
                     <Button 
-                      onClick={() => parseResume("ai")} 
+                      onClick={parseResume} 
                       disabled={isParsing} 
                       variant="default" 
                       size="sm"
@@ -507,42 +505,16 @@ export function ResumeUpload() {
                       ) : (
                         <Rocket className="h-4 w-4 mr-2" />
                       )}
-                      Parse with AI
-                    </Button>
-                    <Button 
-                      onClick={() => parseResume("huggingface")} 
-                      disabled={isParsing} 
-                      variant="secondary" 
-                      size="sm"
-                    >
-                      {isParsing ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-4 w-4 mr-2" />
-                      )}
-                      Parse with HuggingFace
-                    </Button>
-                    <Button 
-                      onClick={() => parseResume("regex")} 
-                      disabled={isParsing} 
-                      variant="outline" 
-                      size="sm"
-                    >
-                      {isParsing ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <FileText className="h-4 w-4 mr-2" />
-                      )}
-                      Parse with Regex
+                      Parse Resume
                     </Button>
                   </div>
                 ) : (
-                      <div className="flex items-center gap-4 flex-wrap w-full">
-                        <div className="flex items-center gap-4 flex-wrap">
-                          <Button variant="secondary" size="sm" onClick={handleEditResume}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
+                  <div className="flex items-center gap-4 flex-wrap w-full">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <Button variant="secondary" size="sm" onClick={handleEditResume}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -556,31 +528,8 @@ export function ResumeUpload() {
                           <DropdownMenuItem onClick={() => exportJSON("clipboard")} className="hover:cursor-pointer">Clipboard</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" disabled={isParsing}>
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Switch Parser
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => parseResume("ai")} className="hover:cursor-pointer">
-                                <Rocket className="h-4 w-4 mr-2" />
-                                Parse with AI
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => parseResume("huggingface")} className="hover:cursor-pointer">
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Parse with HuggingFace
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => parseResume("regex")} className="hover:cursor-pointer">
-                                <FileText className="h-4 w-4 mr-2" />
-                                Parse with Regex
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {parseResult && (
