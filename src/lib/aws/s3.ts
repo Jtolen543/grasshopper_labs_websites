@@ -7,6 +7,9 @@ import {
   type GetObjectCommandOutput,
 } from "@aws-sdk/client-s3"
 import { Readable } from "stream"
+import * as dotenv from "dotenv"
+
+dotenv.config()
 
 export const s3 = new S3Client({
     region: process.env.AWS_BUCKET_REGION,
