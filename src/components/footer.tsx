@@ -22,16 +22,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/questionnaire"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Job Preferences
+                <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Features
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Features
+                <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Dashboard
                 </Link>
               </li>
             </ul>
