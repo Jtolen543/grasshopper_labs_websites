@@ -5,9 +5,9 @@ import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Sparkles, RefreshCw, Edit, ArrowRight } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Sparkles, RefreshCw, Edit } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -16,9 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-import { StudentPreferences, type StudentPreferences as StudentPreferencesType } from "@/components/student-preferences"
 import { ResumeVerification } from "@/components/resume-verification"
 import { useResume } from "@/contexts/resume-context"
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs"
 
 interface UploadedFile {
   name: string
@@ -35,6 +35,7 @@ interface ParseResult {
 
 export function ResumeUpload() {
   const { setResumeData } = useResume()
+  const router = useRouter()
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle")
@@ -43,8 +44,6 @@ export function ResumeUpload() {
   const [isParsing, setIsParsing] = useState(false)
   const [showVerification, setShowVerification] = useState(false)
   const [verifiedData, setVerifiedData] = useState<Resume | null>(null)
-  const [showPreferences, setShowPreferences] = useState(false)
-  const [studentPreferences, setStudentPreferences] = useState<StudentPreferencesType | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true)
@@ -103,8 +102,6 @@ export function ResumeUpload() {
     if (!uploadedFile) return
 
     setIsParsing(true)
-    // Show preferences form immediately when parse button is clicked
-    setShowPreferences(true)
 
     try {
       const response = await fetch("/api/parse", {
@@ -170,15 +167,13 @@ export function ResumeUpload() {
     setParseResult(null)
     setShowVerification(false)
     setVerifiedData(null)
-    setShowPreferences(false)
-    setStudentPreferences(null)
   }
 
   const handleVerificationConfirm = async (data: Resume) => {
     setVerifiedData(data)
     setResumeData(data) // Save to global context
-    
-    // Save to JSON file
+
+    // Persist to S3 via API
     try {
       const response = await fetch("/api/resume", {
         method: "POST",
@@ -191,13 +186,14 @@ export function ResumeUpload() {
       const result = await response.json()
       
       if (result.success) {
-        toast.success("Resume data confirmed and saved to file!")
+        toast.success("Resume data confirmed and saved securely!")
+        router.push("/questionnaire")
       } else {
-        toast.warning("Resume data saved to memory, but file save failed")
+        toast.warning("Resume data saved locally, but cloud save failed")
       }
     } catch (error) {
-      console.error("Error saving resume to file:", error)
-      toast.warning("Resume data saved to memory only")
+      console.error("Error saving resume:", error)
+      toast.warning("Resume data saved locally only")
     }
     
     setShowVerification(false)
@@ -220,18 +216,6 @@ export function ResumeUpload() {
     const sizes = ["Bytes", "KB", "MB", "GB"]
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  }
-
-  const handlePreferencesSubmit = (preferences: StudentPreferencesType) => {
-    setStudentPreferences(preferences)
-    setShowPreferences(false)
-    console.log("Student Preferences:", preferences)
-    // You can add additional logic here, such as saving to a database
-  }
-
-  const handlePreferencesSkip = () => {
-    setShowPreferences(false)
-    console.log("Student skipped preferences")
   }
 
   const renderParseResult = (result: ParseResult) => {
@@ -413,11 +397,30 @@ export function ResumeUpload() {
 
   return (
     <div className="space-y-6">
+      <SignedOut>
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign in to continue</CardTitle>
+            <CardDescription>
+              Please sign in with Clerk to upload your resume and unlock the job preferences workflow.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <SignInButton mode="modal">
+              <Button size="lg">Sign in to get started</Button>
+            </SignInButton>
+          </CardContent>
+        </Card>
+      </SignedOut>
+
+      <SignedIn>
+        <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Upload Resume</CardTitle>
           <CardDescription>
-            Drag and drop your resume file or click to browse. Supported formats: PDF, DOC, DOCX, TXT (Max 10MB)
+            Upload your resume to kick off the process. Supported formats: PDF, DOC, DOCX, TXT (Max 10MB). Once confirmed,
+            you&apos;ll be routed directly to job preferences.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -534,12 +537,12 @@ export function ResumeUpload() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-4 flex-wrap justify-between w-full">
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <Button variant="secondary" size="sm" onClick={handleEditResume}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
+                      <div className="flex items-center gap-4 flex-wrap w-full">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <Button variant="secondary" size="sm" onClick={handleEditResume}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -554,41 +557,30 @@ export function ResumeUpload() {
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" disabled={isParsing}>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Switch Parser
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => parseResume("ai")} className="hover:cursor-pointer">
-                            <Rocket className="h-4 w-4 mr-2" />
-                            Parse with AI
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => parseResume("huggingface")} className="hover:cursor-pointer">
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Parse with HuggingFace
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => parseResume("regex")} className="hover:cursor-pointer">
-                            <FileText className="h-4 w-4 mr-2" />
-                            Parse with Regex
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="group bg-primary hover:bg-primary/90 transition-all"
-                    >
-                      <Link href="/questionnaire" className="flex items-center gap-2">
-                        Fill out questionnaire
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </Link>
-                    </Button>
-                  </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" disabled={isParsing}>
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Switch Parser
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => parseResume("ai")} className="hover:cursor-pointer">
+                                <Rocket className="h-4 w-4 mr-2" />
+                                Parse with AI
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => parseResume("huggingface")} className="hover:cursor-pointer">
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Parse with HuggingFace
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => parseResume("regex")} className="hover:cursor-pointer">
+                                <FileText className="h-4 w-4 mr-2" />
+                                Parse with Regex
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
                 )}
 
                 {parseResult && (
@@ -603,6 +595,9 @@ export function ResumeUpload() {
                         missing: parseResult.missing
                       })}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Confirm your resume details to be redirected automatically to the job preferences questionnaire.
+                    </p>
                   </div>
                 )}
               </div>
@@ -619,6 +614,8 @@ export function ResumeUpload() {
           open={showVerification}
         />
       )}
+        </div>
+      </SignedIn>
     </div>
   )
 }

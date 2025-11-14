@@ -22,14 +22,18 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     try {
       const response = await fetch("/api/resume")
+      if (response.status === 401) {
+        setResumeData(null)
+        return
+      }
       const result = await response.json()
       
       if (result.success && result.data) {
         setResumeData(result.data)
-        console.log("Resume data loaded from file:", result.data)
+        console.log("Resume data loaded from cloud storage:", result.data)
       } else {
         setResumeData(null)
-        console.log("No resume data found in file")
+        console.log("No resume data found for this user")
       }
     } catch (error) {
       console.error("Error loading resume data:", error)

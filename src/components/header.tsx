@@ -27,13 +27,7 @@ export function Header() {
             <Link href="/" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
               Upload Resume
             </Link>
-            <Link
-              href="/questionnaire"
-              className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-            >
-              Job Preferences
-            </Link>
-            <Link href="#" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+            <Link href="/about-us" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
               About
             </Link>
           </nav>

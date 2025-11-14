@@ -1,26 +1,37 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { join } from "path"
-import { existsSync } from "fs"
+import { auth } from "@clerk/nextjs/server"
 import { extractWithChatGPT } from "./semanticParse"
 import { extractWithRegex } from "./regexParse"
 import { extractWithHuggingFace } from "./hfParse"
 import { parseFileContent } from "./parseContent"
+import { getBufferFromS3, objectExistsInS3 } from "@/lib/aws/s3"
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { filename, method } = await request.json()
 
     if (!filename) {
       return NextResponse.json({ error: "No filename provided" }, { status: 400 })
     }
 
-    const filepath = join(process.cwd(), "uploads", filename)
+    const prefix = `uploads/${userId}/`
+    if (!filename.startsWith(prefix)) {
+      return NextResponse.json({ error: "Invalid file key" }, { status: 403 })
+    }
 
-    if (!existsSync(filepath)) {
+    const fileExists = await objectExistsInS3(filename)
+    if (!fileExists) {
       return NextResponse.json({ error: "File not found" }, { status: 404 })
     }
 
-    const content = await parseFileContent(filepath, filename)
+    const fileBuffer = await getBufferFromS3(filename)
+
+    const content = await parseFileContent(fileBuffer, filename)
     
     console.log(`Parsing with method: ${method}, content length: ${content.length}`);
     
