@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -27,6 +27,7 @@ import { useResume } from "@/contexts/resume-context"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import type { QuestionnaireData } from "@/app/questionnaire/data"
 
 // Mock data - replace with actual resume data later
 const mockStudentData = {
@@ -734,6 +735,47 @@ function InternshipSummary({ internships }: { internships: Internship[] }) {
 }
 
 
+function JobPreferencesSummary({ preferences }: { preferences: QuestionnaireData }) {
+  const sections = [
+    { label: "Tech Sectors", values: preferences.techSectors },
+    { label: "Role Types", values: preferences.roleTypes },
+    { label: "Preferred Locations", values: preferences.location },
+    { label: "Work Environment", values: preferences.workEnvironment },
+  ]
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Job Preferences Snapshot</CardTitle>
+        <CardDescription>Highlights from your latest questionnaire</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {sections.map((section) => (
+          <div key={section.label} className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">{section.label}</p>
+            {section.values.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {section.values.slice(0, 6).map((value) => (
+                  <Badge key={`${section.label}-${value}`} variant="secondary">
+                    {value}
+                  </Badge>
+                ))}
+                {section.values.length > 6 && (
+                  <span className="text-xs text-muted-foreground">
+                    +{section.values.length - 6} more
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No selections yet</p>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 function RoleSkillsMatch() {
   const roleData = [
     { role: "Full Stack Dev", match: 70, skills: "7/10 skills", color: "#10b981" },
@@ -808,12 +850,32 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overall")
   const { resumeData, isLoading } = useResume()
 
-  const [questionnaireData, setQuestionnaireData] = useState<any>(null)
+  const [questionnaireData, setQuestionnaireData] = useState<QuestionnaireData | null>(null)
 
-  if (typeof window !== "undefined") {
-    const content = localStorage.getItem("questionnaireData")
-    if (content) setQuestionnaireData(JSON.parse(content))
-  } 
+  useEffect(() => {
+    let isMounted = true
+    const loadPreferences = async () => {
+      try {
+        const response = await fetch("/api/preferences")
+        if (!response.ok) {
+          if (response.status === 401 && isMounted) {
+            setQuestionnaireData(null)
+          }
+          return
+        }
+        const result = await response.json()
+        if (isMounted) {
+          setQuestionnaireData(result.data ?? null)
+        }
+      } catch (error) {
+        console.error("Error loading questionnaire preferences:", error)
+      }
+    }
+    loadPreferences()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   // Extract data from resume or use mock data
   const studentData = resumeData
@@ -922,6 +984,7 @@ export default function DashboardPage() {
           </TabsList>
 
           <TabsContent value="overall" className="space-y-6">
+            {questionnaireData && <JobPreferencesSummary preferences={questionnaireData} />}
             <Accordion type="multiple" className="space-y-4" defaultValue={["coursework", "skills-overview", "tech-overview", "resume-overview"]}>
               <AccordionItem value="coursework" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">

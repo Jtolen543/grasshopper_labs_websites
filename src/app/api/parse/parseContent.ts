@@ -1,8 +1,7 @@
-import { readFile } from "fs/promises"
 import PdfParse from "pdf-parse"
 import mammoth from "mammoth"
 
-export async function parseFileContent(filepath: string, filename: string): Promise<string> {
+export async function parseFileContent(fileBuffer: Buffer, filename: string): Promise<string> {
   try {
     const extension = filename.split(".").pop()?.toLowerCase()
     let fileType = "text/plain"
@@ -14,18 +13,16 @@ export async function parseFileContent(filepath: string, filename: string): Prom
       fileType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     }
     if (fileType === "text/plain") {
-      return await readFile(filepath, "utf-8")
+      return fileBuffer.toString("utf-8")
     }
-
+ 
     if (fileType === "application/pdf") {
-      const buffer = await readFile(filepath)
-      const document = (await PdfParse(buffer)).text
+      const document = (await PdfParse(fileBuffer)).text
       return document 
     }
 
     if (fileType.includes("word") || fileType.includes("document")) {
-      const buffer = await readFile(filepath)
-      const document = (await mammoth.extractRawText({buffer})).value
+      const document = (await mammoth.extractRawText({buffer: fileBuffer})).value
       return document
     }
 

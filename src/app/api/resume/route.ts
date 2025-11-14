@@ -1,25 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { writeFile, readFile, mkdir } from "fs/promises"
-import { join } from "path"
-import { existsSync } from "fs"
+import { auth } from "@clerk/nextjs/server"
+import { deleteFromS3, getJsonFromS3, putJsonToS3 } from "@/lib/aws/s3"
 
-const RESUME_DATA_DIR = join(process.cwd(), "data")
-const RESUME_DATA_FILE = join(RESUME_DATA_DIR, "resume-data.json")
-
-// Ensure data directory exists
-async function ensureDataDir() {
-  if (!existsSync(RESUME_DATA_DIR)) {
-    await mkdir(RESUME_DATA_DIR, { recursive: true })
-  }
-}
-
-// POST - Save resume data
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+
     const resumeData = await request.json()
 
-    await ensureDataDir()
-    await writeFile(RESUME_DATA_FILE, JSON.stringify(resumeData, null, 2), "utf-8")
+    await putJsonToS3(`uploads/${userId}/resume-data.json`, resumeData)
 
     return NextResponse.json({ 
       success: true, 
@@ -38,21 +30,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Load resume data
 export async function GET() {
   try {
-    await ensureDataDir()
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ success: false, data: null, error: "Unauthorized" }, { status: 401 })
+    }
 
-    if (!existsSync(RESUME_DATA_FILE)) {
+    const resumeData = await getJsonFromS3<Record<string, unknown>>(`uploads/${userId}/resume-data.json`)
+
+    if (!resumeData) {
       return NextResponse.json({ 
         success: false, 
         data: null,
         message: "No resume data found" 
       })
     }
-
-    const data = await readFile(RESUME_DATA_FILE, "utf-8")
-    const resumeData = JSON.parse(data)
 
     return NextResponse.json({ 
       success: true, 
@@ -71,13 +64,14 @@ export async function GET() {
     )
   }
 }
-
-// DELETE - Clear resume data
 export async function DELETE() {
   try {
-    if (existsSync(RESUME_DATA_FILE)) {
-      await writeFile(RESUME_DATA_FILE, JSON.stringify(null), "utf-8")
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
+
+    await deleteFromS3(`uploads/${userId}/resume-data.json`)
 
     return NextResponse.json({ 
       success: true, 
