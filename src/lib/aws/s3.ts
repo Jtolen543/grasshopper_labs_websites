@@ -7,15 +7,12 @@ import {
   type GetObjectCommandOutput,
 } from "@aws-sdk/client-s3"
 import { Readable } from "stream"
-import * as dotenv from "dotenv"
-
-dotenv.config()
 
 export const s3 = new S3Client({
     region: process.env.AWS_BUCKET_REGION,
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+        accessKeyId: process.env.IAM_AWS_ACCESS_KEY!,
+        secretAccessKey: process.env.IAM_AWS_SECRET_ACCESS_KEY!
     }
 })
 
