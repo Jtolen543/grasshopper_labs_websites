@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { Header } from "@/components/header"
-import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -357,7 +356,8 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between gap-4 mb-8 bg-card border rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-4">
             {user?.imageUrl ? (
-              <Image src={user.imageUrl} alt="Profile" width={64} height={64} className="h-16 w-16 rounded-full border-2 border-primary/20" />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.imageUrl} alt="Profile" className="h-16 w-16 rounded-full border-2 border-primary/20" />
             ) : (
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center"><User className="h-8 w-8" /></div>
             )}
