@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
-import { uploadToS3, getJsonFromS3, putJsonToS3 } from "@/lib/aws/s3"
+import { uploadToS3, getJsonFromS3, putJsonToS3, deleteFromS3 } from "@/lib/aws/s3"
+
+const DAILY_UPLOAD_LIMIT = 3
+const MAX_STORED_SUBMISSIONS = 5
 
 interface ResumeSubmission {
   id: string
@@ -26,6 +29,36 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("User authenticated:", userId)
+
+    // Check AWS config early
+    if (!process.env.AWS_BUCKET_NAME || !process.env.AWS_BUCKET_REGION ||
+      !process.env.IAM_AWS_ACCESS_KEY || !process.env.IAM_AWS_SECRET_ACCESS_KEY) {
+      console.error("AWS configuration missing")
+      return NextResponse.json(
+        { error: "Server configuration error: AWS credentials not configured" },
+        { status: 500 }
+      )
+    }
+
+    // --- Daily upload limit check ---
+    const metadataKey = `uploads/${userId}/submissions-metadata.json`
+    let metadata = await getJsonFromS3<SubmissionsMetadata>(metadataKey)
+
+    if (metadata) {
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+
+      const uploadsToday = metadata.submissions.filter(
+        (s) => new Date(s.uploadedAt) >= todayStart
+      ).length
+
+      if (uploadsToday >= DAILY_UPLOAD_LIMIT) {
+        return NextResponse.json(
+          { error: `Daily upload limit reached (${DAILY_UPLOAD_LIMIT}/day). Please try again tomorrow.` },
+          { status: 429 }
+        )
+      }
+    }
 
     const data = await request.formData()
     const file: File | null = data.get("file") as unknown as File
@@ -73,22 +106,9 @@ export async function POST(request: NextRequest) {
 
     console.log("Uploading to S3, key:", key)
 
-    // Check AWS config
-    if (!process.env.AWS_BUCKET_NAME || !process.env.AWS_BUCKET_REGION ||
-      !process.env.IAM_AWS_ACCESS_KEY || !process.env.IAM_AWS_SECRET_ACCESS_KEY) {
-      console.error("AWS configuration missing")
-      return NextResponse.json(
-        { error: "Server configuration error: AWS credentials not configured" },
-        { status: 500 }
-      )
-    }
-
     await uploadToS3(key, buffer, file.type || "application/octet-stream")
 
     // Track this submission in metadata
-    const metadataKey = `uploads/${userId}/submissions-metadata.json`
-    let metadata = await getJsonFromS3<SubmissionsMetadata>(metadataKey)
-
     const newSubmission: ResumeSubmission = {
       id: Buffer.from(key + timestamp).toString("base64"),
       fileName: file.name,
@@ -103,6 +123,24 @@ export async function POST(request: NextRequest) {
     }
 
     metadata.submissions.unshift(newSubmission) // Add to beginning (most recent first)
+
+    // --- Prune old submissions beyond the limit ---
+    if (metadata.submissions.length > MAX_STORED_SUBMISSIONS) {
+      const toRemove = metadata.submissions.slice(MAX_STORED_SUBMISSIONS)
+
+      // Delete old S3 files in the background (don't block the response)
+      for (const old of toRemove) {
+        try {
+          await deleteFromS3(old.s3Key)
+          console.log("Pruned old resume from S3:", old.s3Key)
+        } catch (err) {
+          console.error("Failed to prune S3 file:", old.s3Key, err)
+        }
+      }
+
+      metadata.submissions = metadata.submissions.slice(0, MAX_STORED_SUBMISSIONS)
+    }
+
     await putJsonToS3(metadataKey, metadata)
 
     return NextResponse.json({
@@ -131,3 +169,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

@@ -80,6 +80,15 @@ export function ResumeUpload() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
         console.error("Upload failed:", errorData)
+
+        // Handle daily upload limit specifically
+        if (response.status === 429) {
+          setUploadStatus("error")
+          setErrorMessage(errorData.error)
+          toast.warning(errorData.error)
+          return
+        }
+
         throw new Error(errorData.error || `Upload failed with status ${response.status}`)
       }
 
