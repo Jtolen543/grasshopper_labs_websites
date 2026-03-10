@@ -26,7 +26,7 @@ async function fetchUFCoursesByPrefix(prefix: string, term: string = "2251") {
 
   try {
     const response = await fetch(`${UF_API_BASE_URL}?${params.toString()}`)
-    
+
     if (!response.ok) {
       console.error(`UF API returned status ${response.status} for prefix ${prefix}`)
       return []
@@ -74,9 +74,14 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Extract coursework from resume
-    const achievements = resumeData.education?.[0]?.achievements || []
-    const resumeCourses = extractCoursework(achievements)
+    // Extract coursework from ALL education entries (not just the first)
+    const allAchievements: string[] = []
+    for (const edu of (resumeData.education || [])) {
+      if (edu.achievements && Array.isArray(edu.achievements)) {
+        allAchievements.push(...edu.achievements)
+      }
+    }
+    const resumeCourses = extractCoursework(allAchievements)
 
     if (resumeCourses.length === 0) {
       return NextResponse.json({
@@ -101,7 +106,7 @@ export async function GET(request: NextRequest) {
     } else {
       // Fetch UF courses from all CS prefixes (first request per semester)
       console.log("Fetching UF courses from API (no cache found)...")
-      
+
       for (const prefix of UF_CS_PREFIXES) {
         const courses = await fetchUFCoursesByPrefix(prefix, term)
         allUFCourses.push(...courses)
@@ -121,23 +126,23 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    
+
     // Filter for undergraduate courses (3000-4000 level only, exclude specific courses)
     const excludedCourses = [
       "COP2271", "COP2271L", // Excluded by user request
       /CIS4930/, /EEL4930/    // Generic special topics courses
     ]
-    
+
     const undergraduateCourses = allUFCourses.filter(course => {
       // Extract the numeric part from course code (e.g., "COP3530" -> 3530)
       const match = course.code.match(/(\d+)/)
       if (!match) return false
-      
+
       const courseNumber = parseInt(match[1])
-      
+
       // Only courses 3000-4999 (exclude 2000 and below)
       if (courseNumber < 3000 || courseNumber > 4999) return false
-      
+
       // Exclude specific courses
       const isExcluded = excludedCourses.some(excluded => {
         if (excluded instanceof RegExp) {
@@ -145,12 +150,12 @@ export async function GET(request: NextRequest) {
         }
         return course.code === excluded
       })
-      
+
       return !isExcluded
     })
-    
+
     console.log(`Filtered to ${undergraduateCourses.length} undergraduate courses (3000-4000 level, excluding special topics)`)
-    
+
     // Log all scanned courses
     console.log("\n========== ALL SCANNED UF COURSES (UNDERGRADUATE) ==========")
     undergraduateCourses.forEach((course, index) => {
@@ -209,7 +214,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error in course matching API:", error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: "Failed to match coursework",
         message: error instanceof Error ? error.message : "Unknown error"

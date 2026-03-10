@@ -70,32 +70,59 @@ function calculateSimilarity(str1: string, str2: string): number {
 }
 
 /**
- * Extract coursework list from resume achievements string
- * Example: "Relevant Coursework: Course1, Course2, Course3"
+ * Regex pattern matching UF-style course codes (e.g., COP3530, EEL4773, MAD4203C)
+ */
+const COURSE_CODE_REGEX = /\b[A-Z]{2,4}\d{4}[A-Z]?\b/g
+
+/**
+ * Extract coursework list from resume education achievements/strings.
+ * Handles multiple formats:
+ *  - "Relevant Coursework: Course1, Course2, Course3"
+ *  - "Courses: COP3530, EEL4773"
+ *  - Individual bullets that are course codes ("COP3530 Data Structures")
+ *  - Any string containing course codes embedded within it
  */
 export function extractCoursework(achievementsArray: string[]): string[] {
   const coursework: string[] = []
+  const seenCodes = new Set<string>()
+
+  // Labels that indicate a coursework list follows
+  const courseworkLabelPattern = /(?:relevant\s+)?(?:course\s*work|courses?|key\s+courses?|selected\s+courses?|notable\s+courses?)[\s:]+(.+)/i
 
   for (const achievement of achievementsArray) {
-    // Look for "Relevant Coursework:" or similar patterns
-    const match = achievement.match(/relevant coursework:(.+)/i)
-    if (match) {
-      const courseString = match[1]
-      // Split by commas and clean up
+    // Strategy 1: Look for labeled coursework lines ("Relevant Coursework: X, Y, Z")
+    const labelMatch = achievement.match(courseworkLabelPattern)
+    if (labelMatch) {
+      const courseString = labelMatch[1]
+      // Split by commas, semicolons, or " and "
       const courses = courseString
-        .split(",")
+        .split(/[,;]|\band\b/)
         .map((c) => c.trim())
         .filter((c) => c.length > 0)
       coursework.push(...courses)
+      continue
+    }
+
+    // Strategy 2: Extract explicit course codes from any string (e.g., "COP3530", "EEL4773")
+    const codeMatches = achievement.match(COURSE_CODE_REGEX)
+    if (codeMatches) {
+      for (const code of codeMatches) {
+        if (!seenCodes.has(code)) {
+          seenCodes.add(code)
+          coursework.push(code)
+        }
+      }
     }
   }
 
+  // Deduplicate: if we extracted both a code and a full name that contains that code, keep both
+  // (the matching logic handles deduplication at the match level)
   return coursework
 }
 
 /**
- * Match resume coursework to UF courses using fuzzy matching
- * @param resumeCourses - List of course names from resume
+ * Match resume coursework to UF courses using direct code matching + fuzzy name matching
+ * @param resumeCourses - List of course names/codes from resume
  * @param ufCourses - List of UF courses from API
  * @param threshold - Minimum similarity score (0-100) to consider a match
  * @returns Array of matches with scores
@@ -106,12 +133,33 @@ export function matchCoursework(
   threshold: number = 60
 ): CourseMatch[] {
   const matches: CourseMatch[] = []
+  const matchedUFCodes = new Set<string>() // Prevent duplicate matches
 
   for (const resumeCourse of resumeCourses) {
+    // Strategy 1: Direct code match — if the resume course contains a course code,
+    // find the UF course with that exact code
+    const codeMatch = resumeCourse.match(/\b([A-Z]{2,4}\d{4}[A-Z]?)\b/)
+    if (codeMatch) {
+      const code = codeMatch[1]
+      const ufCourse = ufCourses.find(c => c.code === code)
+      if (ufCourse && !matchedUFCodes.has(ufCourse.code)) {
+        matchedUFCodes.add(ufCourse.code)
+        matches.push({
+          resumeCourse,
+          ufCourse,
+          score: 100, // Exact code match
+        })
+        continue
+      }
+    }
+
+    // Strategy 2: Fuzzy name matching (original behavior)
     let bestMatch: CourseMatch | null = null
     let bestScore = 0
 
     for (const ufCourse of ufCourses) {
+      if (matchedUFCodes.has(ufCourse.code)) continue
+
       const score = calculateSimilarity(resumeCourse, ufCourse.name)
 
       if (score > bestScore && score >= threshold) {
@@ -125,6 +173,7 @@ export function matchCoursework(
     }
 
     if (bestMatch) {
+      matchedUFCodes.add(bestMatch.ufCourse.code)
       matches.push(bestMatch)
     }
   }
@@ -144,11 +193,11 @@ export const UF_CS_PREFIXES = [
   "CIS", // Computer Information Science
   "CNT", // Computer Networking
   "CEN", // Computer Engineering
-  
+
   // Electrical & Computer Engineering
   "EEL", // Electrical Engineering
   "EEE", // Electrical Engineering Electives
-  
+
   // Mathematics & Statistics
   "STA", // Statistics
   "MAS", // Applied & Computational Mathematics
@@ -176,7 +225,7 @@ export function categorizeUFCourse(courseCode: string, courseName: string): stri
     "CIS4914",  // Senior project
     "CIS4940",  // Internship/practical work
   ]
-  
+
   // Check for excluded patterns
   if (
     excludedCourses.includes(code) ||
