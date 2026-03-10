@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from "recharts"
 import { cn } from "@/lib/utils"
-import { Loader2, Check, X, Star } from "lucide-react"
+import { Loader2, Check, X, Star, Database } from "lucide-react"
 import { useResume } from "@/contexts/resume-context"
 
 interface CourseMatch {
@@ -241,6 +241,10 @@ export function CareerPathCourseworkChart({
     }
   }
 
+  // Determine if UF
+  const schoolName = resumeData?.education?.[0]?.school?.toLowerCase() || ""
+  const isUF = schoolName.includes("university of florida") || schoolName === "uf"
+
   if (isLoading) {
     return (
       <Card>
@@ -250,6 +254,22 @@ export function CareerPathCourseworkChart({
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!isUF && resumeData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Coursework by CS Category</CardTitle>
+          <CardDescription>Courses from this university will be implemented in the future.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+          <Database className="h-12 w-12 opacity-20 mb-4" />
+          <p className="font-medium text-foreground">We currently only support detailed coursework analysis for the University of Florida.</p>
+          <p className="mt-2 text-sm">Support for {resumeData.education?.[0]?.school || "your university"} is coming soon!</p>
         </CardContent>
       </Card>
     )

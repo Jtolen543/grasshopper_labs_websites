@@ -20,7 +20,6 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { XYZFeedbackDialog } from "@/components/xyz-feedback-dialog"
 
 interface ResumeEditorProps {
     initialData: Resume
@@ -187,8 +186,6 @@ export function ResumeEditor({ initialData, onSave }: ResumeEditorProps) {
                                                 }}
                                             />
                                             <div className="flex justify-end">
-                                                {/* Pass the joined text for analysis */}
-                                                <XYZFeedbackDialog text={form.watch(`experience.${index}.responsibilities`)?.join('\n') || ""} type="experience" />
                                             </div>
                                         </div>
                                     </div>
@@ -235,7 +232,6 @@ export function ResumeEditor({ initialData, onSave }: ResumeEditorProps) {
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center">
                                             <Label>Description</Label>
-                                            <XYZFeedbackDialog text={[form.watch(`projects.${index}.description`) || "", ...(form.watch(`projects.${index}.highlights`) || [])].filter(Boolean).join('\n')} type="project" />
                                         </div>
                                         <Textarea {...form.register(`projects.${index}.description`)} className="min-h-[60px]" placeholder="Brief project summary..." />
                                     </div>
