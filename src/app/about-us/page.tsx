@@ -2,30 +2,38 @@
 
 import { TeamMemberCard } from "@/components/team-member-card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Mail, MessageSquare, Send } from "lucide-react"
 
 export default function AboutUsPage() {
   const students = [
     {
       name: "Wyatt Harris",
-      role: "Full Stack Architect",
-      description: "Building scalable systems and crafting seamless user experiences. Specializes in Next.js and Cloud Infrastructure.",
-      socials: { github: "#", linkedin: "#", email: "wyatt@example.com" }
+      role: "Full Stack Dev",
+      description: "Computer Engineering Undergrad and Undergraduate Researcher.",
+      socials: { github: "https://github.com/wharris23", linkedin: "https://www.linkedin.com/in/wyatt-harris-2123swe/", email: "wharris2023@gmail.com" },
+      image: "/team/wyatt-harris.png"
     },
     {
       name: "Jason Tolen",
-      role: "UI/UX Designer",
-      description: "Designing improved interfaces for the next generation of web apps. Passionate about accessibility and design systems.",
-      socials: { github: "#", linkedin: "#", email: "jason@example.com" }
+      role: "Project Manager",
+      description: "Computer Science Alumni and Data Annotation Freelancer.",
+      socials: { github: "https://github.com/Jtolen543", linkedin: "https://www.linkedin.com/in/jason-tolen/", email: "jason@example.com" },
+      image: "/team/jason-tolen.png"
     },
     {
       name: "Nicolas Slenko",
-      role: "Backend Engineer",
-      description: "Optimizing database queries and ensuring system reliability. Expert in SQL and distributed systems.",
-      socials: { github: "#", linkedin: "#", email: "nicolas@example.com" }
+      role: "Full Stack Dev",
+      description: "Computer Science Undergrad and Incoming Roblox Intern.",
+      socials: { github: "https://github.com/NicolasSlenko/", linkedin: "https://www.linkedin.com/in/nicolas-slenko/", email: "nickslenko@gmail.com" },
+      image: "/team/nicolas-slenko.png"
     },
     {
       name: "Oliver",
-      role: "Data Scientist",
+      role: "Researcher",
       description: "Uncovering insights from massive datasets. Focused on machine learning and predictive analytics.",
       socials: { github: "#", linkedin: "#", email: "oliver@example.com" }
     }
@@ -34,9 +42,10 @@ export default function AboutUsPage() {
   const professor = {
     name: "Dr. Amanpreet Kapoor",
     role: "Research Lead & Professor",
-    description: "Guiding the next generation of tech leaders. Specializing in AI and Human-Computer Interaction.",
+    description: "Instructional Associate Professor in the UF Department of Engineering Education.",
     socials: { github: "#", linkedin: "#", email: "kapoor@ufl.edu" },
-    isProfessor: true
+    isProfessor: true,
+    image: "/team/amanpreet-kapoor.png"
   }
 
   return (
@@ -70,6 +79,70 @@ export default function AboutUsPage() {
              </span>
           </div>
           <TeamMemberCard {...professor} />
+        </div>
+
+        {/* --- Contact Section Merged from /contact --- */}
+        <div className="mt-32 max-w-4xl mx-auto grid md:grid-cols-2 gap-12 items-start">
+          {/* Info Section */}
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-3xl font-bold mb-4">
+                Get in Touch
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                Have questions about the project? Want to collaborate or report an issue?
+                We&apos;d love to hear from you.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <Mail className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Email Us</p>
+                  <a href="mailto:wharris2023@gmail.com" className="text-lg hover:text-primary transition-colors">wharris2023@gmail.com</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Standard Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Send a Message</CardTitle>
+              <CardDescription>
+                Fill out the form below and we&apos;ll get back to you as soon as possible.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium">Name</label>
+                  <Input id="name" placeholder="Your name" />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">Email</label>
+                  <Input id="email" type="email" placeholder="name@example.com" />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="message" className="text-sm font-medium">Message</label>
+                  <Textarea
+                    id="message"
+                    placeholder="How can we help?"
+                    className="min-h-[120px] resize-none"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full">
+                  <Send className="w-4 h-4 mr-2" /> Send Message
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
