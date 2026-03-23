@@ -9,6 +9,7 @@ interface ResumeSubmission {
   s3Key: string
   uploadedAt: string
   score: number
+  isStarred?: boolean
 }
 
 interface XYZFeedbackItem {
@@ -43,6 +44,9 @@ interface ResumeContextType {
   actionableInsights: ActionableInsight[]
   showFeedback: boolean
   toggleFeedback: () => void
+  addXp: (amount: number) => void
+  setCharacterClass: (c: string) => void
+  debugSetLevel: (level: number) => void
 }
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined)
@@ -171,6 +175,9 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
         actionableInsights,
         showFeedback,
         toggleFeedback,
+        addXp: () => {},
+        setCharacterClass: () => {},
+        debugSetLevel: () => {},
       }}
     >
       {children}

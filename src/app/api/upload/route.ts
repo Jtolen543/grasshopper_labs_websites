@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@clerk/nextjs/server"
 import { uploadToS3, getJsonFromS3, putJsonToS3, deleteFromS3 } from "@/lib/aws/s3"
 
 const DAILY_UPLOAD_LIMIT = 3
@@ -11,6 +11,7 @@ interface ResumeSubmission {
   s3Key: string
   uploadedAt: string
   score: number
+  isStarred?: boolean
 }
 
 interface SubmissionsMetadata {
@@ -52,7 +53,12 @@ export async function POST(request: NextRequest) {
         (s) => new Date(s.uploadedAt) >= todayStart
       ).length
 
-      if (uploadsToday >= DAILY_UPLOAD_LIMIT) {
+      // Check for unlimited upload exemption
+      const user = await currentUser()
+      const userEmail = user?.primaryEmailAddress?.emailAddress
+      const isExempt = userEmail === "nickslenko@gmail.com"
+
+      if (uploadsToday >= DAILY_UPLOAD_LIMIT && !isExempt) {
         return NextResponse.json(
           { error: `Daily upload limit reached (${DAILY_UPLOAD_LIMIT}/day). Please try again tomorrow.` },
           { status: 429 }
@@ -116,6 +122,7 @@ export async function POST(request: NextRequest) {
       uploadedAt: new Date().toISOString(),
       // Score starts at 0, will be calculated after parsing
       score: 0,
+      isStarred: false,
     }
 
     if (!metadata) {
@@ -124,21 +131,28 @@ export async function POST(request: NextRequest) {
 
     metadata.submissions.unshift(newSubmission) // Add to beginning (most recent first)
 
-    // --- Prune old submissions beyond the limit ---
-    if (metadata.submissions.length > MAX_STORED_SUBMISSIONS) {
-      const toRemove = metadata.submissions.slice(MAX_STORED_SUBMISSIONS)
+    // --- Prune old unstarred submissions beyond the limit ---
+    const unstarred = metadata.submissions.filter(s => !s.isStarred)
+    
+    if (unstarred.length > MAX_STORED_SUBMISSIONS) {
+      const toRemove = unstarred.slice(MAX_STORED_SUBMISSIONS)
 
-      // Delete old S3 files in the background (don't block the response)
+      // Delete old S3 files in the background
       for (const old of toRemove) {
         try {
           await deleteFromS3(old.s3Key)
+          await deleteFromS3(`uploads/${userId}/resume-data-${old.id}.json`).catch(() => {})
+          await deleteFromS3(`uploads/${userId}/xyz-feedback-${old.id}.json`).catch(() => {})
           console.log("Pruned old resume from S3:", old.s3Key)
         } catch (err) {
           console.error("Failed to prune S3 file:", old.s3Key, err)
         }
       }
 
-      metadata.submissions = metadata.submissions.slice(0, MAX_STORED_SUBMISSIONS)
+      // Reconstruct preserving order
+      metadata.submissions = metadata.submissions.filter(
+        s => !toRemove.find(r => r.id === s.id)
+      )
     }
 
     await putJsonToS3(metadataKey, metadata)
