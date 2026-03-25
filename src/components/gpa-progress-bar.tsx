@@ -149,8 +149,8 @@ export function GPAProgressBar({ gpa }: GPAProgressBarProps) {
           <p className="text-sm">
             {gpa < 3.0 ? (
               <>
-                <span className="font-semibold text-red-600">Consider omitting.</span> Generally, it's recommended
-                to leave your GPA off your resume if it's below a 3.0. Focus on highlighting your technical projects
+                <span className="font-semibold text-red-600">Consider omitting.</span> Generally, it&apos;s recommended
+                to leave your GPA off your resume if it&apos;s below a 3.0. Focus on highlighting your technical projects
                 and relevant experience instead!
               </>
             ) : gpa >= INTERNSHIP_AVG_GPA ? (
