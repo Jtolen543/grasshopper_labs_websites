@@ -59,7 +59,7 @@ const mockStudentData = {
   },
 }
 
-const INTERNSHIP_AVG_GPA = 3.6
+const INTERNSHIP_AVG_GPA = 3.3
 
 // Helper function to calculate year in school from start and end dates
 function calculateYearInSchool(endDate?: string, startDate?: string): number {
@@ -235,7 +235,13 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
 
         <div className="bg-muted/50 p-4 rounded-lg">
           <p className="text-sm">
-            {gpa >= INTERNSHIP_AVG_GPA ? (
+            {gpa < 3.0 ? (
+              <>
+                <span className="font-semibold text-red-600">Consider omitting.</span> Generally, it's recommended
+                to leave your GPA off your resume if it's below a 3.0. Focus on highlighting your technical projects
+                and relevant experience instead!
+              </>
+            ) : gpa >= INTERNSHIP_AVG_GPA ? (
               <>
                 <span className="font-semibold text-green-600">Great position!</span> Your GPA is{" "}
                 {gpa > INTERNSHIP_AVG_GPA ? "above" : "at"} the average for students who secured
