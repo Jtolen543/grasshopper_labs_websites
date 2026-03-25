@@ -52,7 +52,6 @@ export interface ResumeSubmission {
   s3Key: string
   uploadedAt: string
   score: number
-  isStarred?: boolean
 }
 
 function getScoreBadgeVariant(score: number): "default" | "secondary" | "destructive" | "outline" {
@@ -150,23 +149,14 @@ function ResumePreviewDialog({ submission }: { submission: ResumeSubmission }) {
 function ResumeSubmissionCard({ 
   submission, 
   isActive, 
-  onStarToggle,
   onRestore
 }: { 
   submission: ResumeSubmission, 
   isActive: boolean,
-  onStarToggle: (id: string, isStarred: boolean) => Promise<void>,
   onRestore: (id: string) => Promise<void>
 }) {
   const isPdf = submission.fileName.toLowerCase().endsWith(".pdf")
-  const [isStarring, setIsStarring] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
-
-  const handleStarClick = async () => {
-    setIsStarring(true)
-    await onStarToggle(submission.id, !submission.isStarred)
-    setIsStarring(false)
-  }
 
   const handleRestoreClick = async () => {
     setIsRestoring(true)
@@ -201,16 +191,7 @@ function ResumeSubmissionCard({
               </Badge>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleStarClick} 
-                disabled={isStarring || (!submission.isStarred && !isActive)}
-                title={(!submission.isStarred && !isActive) ? "Data deleted to save space, cannot star past resumes." : "Star this resume"}
-              >
-                <Star className={cn("h-4 w-4", submission.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground")} />
-              </Button>
-              {submission.isStarred && !isActive && (
+              {!isActive && (
                 <Button variant="outline" size="sm" onClick={handleRestoreClick} disabled={isRestoring}>
                   {isRestoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-1" />}
                   Restore
@@ -358,24 +339,6 @@ export default function ProfilePage() {
     }
   }, [isLoaded])
 
-  const handleStarToggle = async (id: string, starred: boolean) => {
-    try {
-      const res = await fetch("/api/resume-submissions/star", {
-        method: "POST",
-        body: JSON.stringify({ id, starred })
-      })
-      const result = await res.json()
-      if (result.success) {
-        setSubmissions(prev => prev.map(s => s.id === id ? { ...s, isStarred: starred } : s))
-        toast.success(starred ? "Resume favorited!" : "Resume removed from favorites.")
-      } else {
-        toast.error(result.error)
-      }
-    } catch (e) {
-      toast.error("An error occurred")
-    }
-  }
-
   const handleRestore = async (id: string) => {
     try {
       const res = await fetch("/api/resume-submissions/restore", {
@@ -385,7 +348,10 @@ export default function ProfilePage() {
       const result = await res.json()
       if (result.success) {
         setResumeData(result.data)
-        setSubmissions(prev => [result.submission, ...prev])
+        setSubmissions(prev => {
+          const removed = prev.filter(s => s.id !== result.submission.id)
+          return [result.submission, ...removed]
+        })
         await refreshResumeData()
         toast.success("Resume restored successfully!")
       } else {
@@ -487,7 +453,6 @@ export default function ProfilePage() {
                         <div key={sub.id} className="text-sm p-3 border rounded-lg hover:bg-muted/50 transition-colors group bg-card">
                           <div className="flex justify-between items-start mb-1">
                             <div className="font-medium truncate flex-1">{sub.fileName}</div>
-                            {sub.isStarred && <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 ml-2 mt-1 shrink-0" />}
                           </div>
                           <div className="flex justify-between items-center text-xs text-muted-foreground">
                             <span>{formatChartDate(sub.uploadedAt)}</span>
@@ -588,7 +553,6 @@ export default function ProfilePage() {
                       key={s.id} 
                       submission={s} 
                       isActive={idx === 0}
-                      onStarToggle={handleStarToggle}
                       onRestore={handleRestore}
                     />
                   ))

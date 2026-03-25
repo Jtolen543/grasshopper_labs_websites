@@ -1014,11 +1014,6 @@ function OverallResumeScore({
                           style={{ width: `${item.combinedScore}%` }}
                         />
                       </div>
-                      {/* Quality vs Quantity mini-labels */}
-                      <div className="flex justify-between text-xs text-muted-foreground mt-0.5">
-                        <span>Q: {item.qualityScore}</span>
-                        <span>Qty: {item.quantityScore}</span>
-                      </div>
                     </div>
                     <span className="text-sm font-semibold w-8 text-right">+{item.contribution}</span>
                   </div>

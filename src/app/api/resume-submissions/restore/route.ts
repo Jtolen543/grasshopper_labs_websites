@@ -27,9 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Submission not found" }, { status: 404 })
     }
 
-    if (!targetSub.isStarred) {
-      return NextResponse.json({ success: false, error: "Only starred resumes can be restored." }, { status: 400 })
-    }
+    // Any of the last 10 resumes can be restored now, so no isStarred check.
 
     const targetResumeData = await getJsonFromS3<Resume>(`uploads/${userId}/resume-data-${id}.json`)
     if (!targetResumeData) {
@@ -47,19 +45,18 @@ export async function POST(request: NextRequest) {
 
     const accurateScore = calculateResumeScoreDetailed(targetResumeData, targetFeedbackData).totalScore
 
-    // Clone submission as the new active one
-    const newRestoredSub = {
-      ...targetSub,
-      score: accurateScore,
-      id: Buffer.from(targetSub.s3Key + Date.now()).toString("base64"),
-      uploadedAt: new Date().toISOString(),
-      isStarred: false // Allow them to independently star the restored version if they want
-    }
+    // Move the restored submission to the top without counting as a new one
+    metadata.submissions = metadata.submissions.filter(s => s.id !== id);
+    targetSub.score = accurateScore;
+    targetSub.uploadedAt = new Date().toISOString();
     
-    metadata.submissions.unshift(newRestoredSub)
-    await putJsonToS3(`uploads/${userId}/resume-data-${newRestoredSub.id}.json`, targetResumeData)
+    metadata.submissions.unshift(targetSub);
+    
+    // limit to 10
+    metadata.submissions = metadata.submissions.slice(0, 10);
+    await putJsonToS3(`uploads/${userId}/resume-data-${targetSub.id}.json`, targetResumeData)
     if (targetFeedbackData) {
-      await putJsonToS3(`uploads/${userId}/xyz-feedback-${newRestoredSub.id}.json`, targetFeedbackData)
+      await putJsonToS3(`uploads/${userId}/xyz-feedback-${targetSub.id}.json`, targetFeedbackData)
     }
     
     await putJsonToS3(metadataKey, metadata)
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Resume restored successfully",
       data: targetResumeData,
-      submission: newRestoredSub
+      submission: targetSub
     })
   } catch (error) {
     console.error("Error restoring resume:", error)

@@ -10,7 +10,6 @@ export interface ResumeSubmission {
   s3Key: string
   uploadedAt: string
   score: number
-  isStarred?: boolean
 }
 
 interface SubmissionsMetadata {
@@ -49,19 +48,20 @@ export async function GET() {
             s3Key: obj.key,
             uploadedAt: obj.lastModified?.toISOString() || new Date().toISOString(),
             score: calculatedScore,
-            isStarred: false,
           }
         })
         .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
 
+      const limitedSubmissions = submissions.slice(0, 10);
+      
       // Save the metadata for future use
-      if (submissions.length > 0) {
-        await putJsonToS3(metadataKey, { submissions })
+      if (limitedSubmissions.length > 0) {
+        await putJsonToS3(metadataKey, { submissions: limitedSubmissions })
       }
 
       return NextResponse.json({
         success: true,
-        data: submissions,
+        data: limitedSubmissions,
       })
     }
 
@@ -127,7 +127,6 @@ export async function POST(request: NextRequest) {
       s3Key,
       uploadedAt: new Date().toISOString(),
       score: calculatedScore,
-      isStarred: false,
     }
 
     if (!metadata) {
@@ -135,6 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     metadata.submissions.unshift(newSubmission) // Add to beginning (most recent first)
+    metadata.submissions = metadata.submissions.slice(0, 10) // Limit to last 10
 
     await putJsonToS3(metadataKey, metadata)
 
