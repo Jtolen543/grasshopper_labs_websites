@@ -95,6 +95,7 @@ const ResumeSchema = z.object({
   certifications: z.array(CertificationItemSchema),
   publications: z.array(PublicationItemSchema),
   extracurriculars: z.array(ExtracurricularItemSchema),
+  gamification: z.any().optional(),
 });
 
 export function getResumeObject() {
