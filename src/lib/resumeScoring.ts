@@ -133,6 +133,20 @@ export function calculateResumeScoreDetailed(
   const gpaCombined = gpaAnalysis.score // GPA is threshold-based
   const courseworkCombined = combineScores(courseworkAnalysis.qualityScore, courseworkAnalysis.quantityScore)
 
+  // Determine if UF
+  const schoolName = resume.education?.[0]?.school?.toLowerCase() || ""
+  const isUF = schoolName.includes("university of florida") || schoolName === "uf"
+
+  // Dynamically adjust weights based on university
+  const currentWeights = isUF ? WEIGHTS : {
+    projects: 30,
+    experience: 30,
+    skills: 20,
+    links: 10,
+    gpa: 10,
+    coursework: 0
+  }
+
   // Build breakdown
   const breakdown: ScoreBreakdown[] = [
     {
@@ -140,50 +154,54 @@ export function calculateResumeScoreDetailed(
       qualityScore: projectQuality,
       quantityScore: projectQuantity,
       combinedScore: projectsCombined,
-      weight: WEIGHTS.projects,
-      contribution: Math.round(projectsCombined * WEIGHTS.projects / 100)
+      weight: currentWeights.projects,
+      contribution: Math.round(projectsCombined * currentWeights.projects / 100)
     },
     {
       category: 'Experience',
       qualityScore: experienceQuality,
       quantityScore: experienceQuantity,
       combinedScore: experienceCombined,
-      weight: WEIGHTS.experience,
-      contribution: Math.round(experienceCombined * WEIGHTS.experience / 100)
+      weight: currentWeights.experience,
+      contribution: Math.round(experienceCombined * currentWeights.experience / 100)
     },
     {
       category: 'Skills',
       qualityScore: skillsAnalysis.qualityScore,
       quantityScore: skillsAnalysis.quantityScore,
       combinedScore: skillsCombined,
-      weight: WEIGHTS.skills,
-      contribution: Math.round(skillsCombined * WEIGHTS.skills / 100)
+      weight: currentWeights.skills,
+      contribution: Math.round(skillsCombined * currentWeights.skills / 100)
     },
     {
       category: 'Links + Contact',
       qualityScore: linksCombined,
       quantityScore: linksCombined, // Same as quality for links
       combinedScore: linksCombined,
-      weight: WEIGHTS.links,
-      contribution: Math.round(linksCombined * WEIGHTS.links / 100)
+      weight: currentWeights.links,
+      contribution: Math.round(linksCombined * currentWeights.links / 100)
     },
     {
       category: 'GPA',
       qualityScore: gpaCombined,
       quantityScore: gpaCombined, // Same as quality for GPA
       combinedScore: gpaCombined,
-      weight: WEIGHTS.gpa,
-      contribution: Math.round(gpaCombined * WEIGHTS.gpa / 100)
-    },
-    {
+      weight: currentWeights.gpa,
+      contribution: Math.round(gpaCombined * currentWeights.gpa / 100)
+    }
+  ]
+
+  // Only add coursework if it's UF or if currentWeights has coursework > 0
+  if (currentWeights.coursework > 0) {
+    breakdown.push({
       category: 'Coursework',
       qualityScore: courseworkAnalysis.qualityScore,
       quantityScore: courseworkAnalysis.quantityScore,
       combinedScore: courseworkCombined,
-      weight: WEIGHTS.coursework,
-      contribution: Math.round(courseworkCombined * WEIGHTS.coursework / 100)
-    },
-  ]
+      weight: currentWeights.coursework,
+      contribution: Math.round(courseworkCombined * currentWeights.coursework / 100)
+    })
+  }
 
   // Calculate total score
   const totalScore = breakdown.reduce((sum, item) => sum + item.contribution, 0)

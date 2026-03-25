@@ -5,6 +5,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getJsonFromS3, putJsonToS3 } from "@/lib/aws/s3";
 import type { Resume } from "@/app/api/parse/resumeSchema";
+import { calculateResumeScoreDetailed } from "@/lib/resumeScoring";
 
 // GET — serve cached XYZ feedback + insights
 export async function GET() {
@@ -90,6 +91,13 @@ export async function POST(request: NextRequest) {
         if (projectItems.length === 0 && experienceItems.length === 0) {
             const emptyResult = { projects: {}, experience: {}, actionableInsights: [] };
             await putJsonToS3(`uploads/${userId}/xyz-feedback.json`, emptyResult);
+            
+            const metadataKey = `uploads/${userId}/submissions-metadata.json`;
+            const metadata = await getJsonFromS3<{submissions: any[]}>(metadataKey);
+            if (metadata && metadata.submissions.length > 0) {
+                await putJsonToS3(`uploads/${userId}/xyz-feedback-${metadata.submissions[0].id}.json`, emptyResult);
+            }
+
             return NextResponse.json({ success: true, data: emptyResult });
         }
 
@@ -144,6 +152,20 @@ ${experienceItems.length > 0 ? "=== EXPERIENCE ===\n" + experienceItems.join("\n
 
         // Cache to S3
         await putJsonToS3(`uploads/${userId}/xyz-feedback.json`, indexed);
+
+        const metadataKey = `uploads/${userId}/submissions-metadata.json`;
+        const metadata = await getJsonFromS3<{submissions: any[]}>(metadataKey);
+        if (metadata && metadata.submissions.length > 0) {
+            await putJsonToS3(`uploads/${userId}/xyz-feedback-${metadata.submissions[0].id}.json`, indexed);
+            
+            // Re-calculate score with the new feedback
+            const resumeData = await getJsonFromS3<Resume>(`uploads/${userId}/resume-data.json`);
+            if (resumeData) {
+                const newScore = calculateResumeScoreDetailed(resumeData, indexed).totalScore;
+                metadata.submissions[0].score = newScore;
+                await putJsonToS3(metadataKey, metadata);
+            }
+        }
 
         return NextResponse.json({ success: true, data: indexed });
 

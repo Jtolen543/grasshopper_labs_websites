@@ -33,7 +33,7 @@ import type { QuestionnaireData } from "@/app/questionnaire/data"
 import { ActionableInsights } from "@/components/actionable-insights"
 import { calculateResumeScoreDetailed, getScoreStatus, getImprovementMessage, getScoreBreakdown, type ResumeScoreResult } from "@/lib/resumeScoring"
 import { useSignInLogger } from "@/hooks/use-signin-logger"
-import { XYZInlineFeedback } from "@/components/xyz-inline-feedback"
+import { XYZInlineFeedback, getXYZScoreColor } from "@/components/xyz-inline-feedback"
 
 // Mock data - replace with actual resume data later
 const mockStudentData = {
@@ -59,7 +59,7 @@ const mockStudentData = {
   },
 }
 
-const INTERNSHIP_AVG_GPA = 3.6
+const INTERNSHIP_AVG_GPA = 3.3
 
 // Helper function to calculate year in school from start and end dates
 function calculateYearInSchool(endDate?: string, startDate?: string): number {
@@ -235,7 +235,13 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
 
         <div className="bg-muted/50 p-4 rounded-lg">
           <p className="text-sm">
-            {gpa >= INTERNSHIP_AVG_GPA ? (
+            {gpa < 3.0 ? (
+              <>
+                <span className="font-semibold text-red-600">Consider omitting.</span> Generally, it's recommended
+                to leave your GPA off your resume if it's below a 3.0. Focus on highlighting your technical projects
+                and relevant experience instead!
+              </>
+            ) : gpa >= INTERNSHIP_AVG_GPA ? (
               <>
                 <span className="font-semibold text-green-600">Great position!</span> Your GPA is{" "}
                 {gpa > INTERNSHIP_AVG_GPA ? "above" : "at"} the average for students who secured
@@ -835,10 +841,17 @@ function ProjectPortfolioSummary({
                 key={i}
                 className="p-3 border rounded-lg bg-muted/5 dark:bg-muted/20 space-y-2"
               >
-                <div>
-                  <p className="font-semibold">{p.name}</p>
-                  {p.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{p.description}</p>
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <p className="font-semibold">{p.name}</p>
+                    {p.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{p.description}</p>
+                    )}
+                  </div>
+                  {showFeedback && xyzFeedback?.[i] && (
+                    <Badge variant="outline" className={cn("text-xs font-bold whitespace-nowrap", getXYZScoreColor(xyzFeedback[i].score))}>
+                      {xyzFeedback[i].score}/100
+                    </Badge>
                   )}
                 </div>
                 {/* Project bullet points */}
@@ -1001,11 +1014,6 @@ function OverallResumeScore({
                           style={{ width: `${item.combinedScore}%` }}
                         />
                       </div>
-                      {/* Quality vs Quantity mini-labels */}
-                      <div className="flex justify-between text-xs text-muted-foreground mt-0.5">
-                        <span>Q: {item.qualityScore}</span>
-                        <span>Qty: {item.quantityScore}</span>
-                      </div>
                     </div>
                     <span className="text-sm font-semibold w-8 text-right">+{item.contribution}</span>
                   </div>
@@ -1026,12 +1034,6 @@ function OverallResumeScore({
         </CardContent>
       </Card>
 
-      {/* Actionable Insights - AI-generated when available, fallback to heuristic */}
-      {showFeedback && aiInsights.length > 0 ? (
-        <ActionableInsights insights={aiInsights} />
-      ) : scoreResult && scoreResult.insights.length > 0 ? (
-        <ActionableInsights insights={scoreResult.insights as any} />
-      ) : null}
     </div>
   )
 }
@@ -1359,13 +1361,20 @@ function ExperienceSummary({
                       <p className="font-medium text-sm">{exp.position}</p>
                       <p className="text-xs text-muted-foreground">{exp.company}</p>
                     </div>
-                    <div className="flex gap-1.5 shrink-0">
-                      <Badge className={cn("text-xs", typeBadgeColor[expType] || 'bg-muted text-muted-foreground')}>
-                        {expType}
-                      </Badge>
-                      {isRelevant && roleTypes.length > 0 && (
-                        <Badge variant="outline" className="border-primary/50 text-primary">
-                          <Target className="h-3 w-3 mr-1" /> Relevant
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <div className="flex gap-1.5">
+                        <Badge className={cn("text-xs", typeBadgeColor[expType] || 'bg-muted text-muted-foreground')}>
+                          {expType}
+                        </Badge>
+                        {isRelevant && roleTypes.length > 0 && (
+                          <Badge variant="outline" className="border-primary/50 text-primary">
+                            <Target className="h-3 w-3 mr-1" /> Relevant
+                          </Badge>
+                        )}
+                      </div>
+                      {showFeedback && xyzFeedback?.[idx] && (
+                        <Badge variant="outline" className={cn("text-xs font-bold", getXYZScoreColor(xyzFeedback[idx].score))}>
+                          {xyzFeedback[idx].score}/100
                         </Badge>
                       )}
                     </div>
@@ -1936,10 +1945,9 @@ export default function DashboardPage() {
           </TabsList>
 
           <TabsContent value="overall" className="space-y-6">
-            {/* Job Preferences - Now first (swapped with Resume Score) */}
+            {/* Job Preferences */}
             {questionnaireData && <JobPreferencesSummary preferences={questionnaireData} />}
 
-            {/* Resume Score - Now second */}
             <OverallResumeScore
               gpa={studentData.gpa}
               skills={studentData.skills}
@@ -1955,49 +1963,11 @@ export default function DashboardPage() {
               showFeedback={showFeedback}
             />
 
+            {showFeedback && actionableInsights && actionableInsights.length > 0 && (
+              <ActionableInsights insights={actionableInsights} />
+            )}
 
-            <Accordion type="multiple" className="space-y-4" defaultValue={["coursework", "skills-overview", "tech-overview", "resume-overview"]}>
-              <AccordionItem value="coursework" className="border rounded-lg px-4">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Database className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Career Path Coursework (Radar)</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <CareerPathCourseworkChart
-                    roleTypes={questionnaireData?.roleTypes}
-                    techSectors={questionnaireData?.techSectors}
-                  />
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="skills-overview" className="border rounded-lg px-4">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Code className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Skills Portfolio (Spider Web)</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <SkillsRadarChart skills={studentData.skills} roleTypes={questionnaireData?.roleTypes} />
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Technology Stack Alignment - Hidden for now
-              <AccordionItem value="tech-overview" className="border rounded-lg px-4">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Technology Stack Alignment</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <TechStackAlignment />
-                </AccordionContent>
-              </AccordionItem>
-              */}
-
+            <Accordion type="multiple" className="space-y-4" defaultValue={["resume-overview"]}>
               <AccordionItem value="resume-overview" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2">
@@ -2013,7 +1983,23 @@ export default function DashboardPage() {
           </TabsContent>
 
           <TabsContent value="education" className="space-y-6">
-            <Accordion type="multiple" className="space-y-4" defaultValue={["gpa", "year", "skills", "tech", "coursework"]}>
+
+            <Accordion type="multiple" className="space-y-4" defaultValue={["coursework", "gpa", "year"]}>
+              <AccordionItem value="coursework" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Career Path Coursework (Radar)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CareerPathCourseworkChart
+                    roleTypes={questionnaireData?.roleTypes}
+                    techSectors={questionnaireData?.techSectors}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+
               <AccordionItem value="gpa" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2">
@@ -2038,17 +2024,7 @@ export default function DashboardPage() {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="skills" className="border rounded-lg px-4">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Code className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Skills Portfolio (Spider Web)</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <SkillsRadarChart skills={studentData.skills} roleTypes={questionnaireData?.roleTypes} />
-                </AccordionContent>
-              </AccordionItem>
+
 
               {/* Technology Stack Alignment - Hidden for now
               <AccordionItem value="tech" className="border rounded-lg px-4">
@@ -2067,7 +2043,7 @@ export default function DashboardPage() {
           </TabsContent>
 
           <TabsContent value="projects" className="space-y-6">
-            <Accordion type="multiple" className="space-y-4" defaultValue={["portfolio", "resume"]}>
+            <Accordion type="multiple" className="space-y-4" defaultValue={["portfolio", "skills"]}>
               <AccordionItem value="portfolio" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2">
@@ -2086,15 +2062,15 @@ export default function DashboardPage() {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="resume" className="border rounded-lg px-4">
+              <AccordionItem value="skills" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Resume Completeness</span>
+                    <Code className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Skills Portfolio (Spider Web)</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ResumeCompletenessScore resume={studentData.resume} />
+                  <SkillsRadarChart skills={studentData.skills} roleTypes={questionnaireData?.roleTypes} />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

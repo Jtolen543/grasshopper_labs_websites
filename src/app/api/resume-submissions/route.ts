@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { listObjectsInS3, getJsonFromS3, putJsonToS3, deleteFromS3 } from "@/lib/aws/s3"
-import { calculateResumeScore } from "@/lib/resumeScoring"
+import { calculateResumeScoreDetailed } from "@/lib/resumeScoring"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 
 export interface ResumeSubmission {
@@ -24,9 +24,10 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
-    // Always get the current resume data for accurate score calculation
+    // Always get the current resume data & feedback for accurate score calculation
     const resumeData = await getJsonFromS3<Resume>(`uploads/${userId}/resume-data.json`)
-    const calculatedScore = resumeData ? calculateResumeScore(resumeData) : 0
+    const xyzFeedback = await getJsonFromS3<any>(`uploads/${userId}/xyz-feedback.json`)
+    const calculatedScore = resumeData ? calculateResumeScoreDetailed(resumeData, xyzFeedback).totalScore : 0
 
     // Try to get existing submissions metadata
     const metadataKey = `uploads/${userId}/submissions-metadata.json`
@@ -46,20 +47,21 @@ export async function GET() {
             fileName,
             s3Key: obj.key,
             uploadedAt: obj.lastModified?.toISOString() || new Date().toISOString(),
-            // Use calculated score from resume data, or 0 if not parsed yet
             score: calculatedScore,
           }
         })
         .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
 
+      const limitedSubmissions = submissions.slice(0, 10);
+      
       // Save the metadata for future use
-      if (submissions.length > 0) {
-        await putJsonToS3(metadataKey, { submissions })
+      if (limitedSubmissions.length > 0) {
+        await putJsonToS3(metadataKey, { submissions: limitedSubmissions })
       }
 
       return NextResponse.json({
         success: true,
-        data: submissions,
+        data: limitedSubmissions,
       })
     }
 
@@ -116,14 +118,14 @@ export async function POST(request: NextRequest) {
 
     // Try to get saved resume data for score calculation
     const resumeData = await getJsonFromS3<Resume>(`uploads/${userId}/resume-data.json`)
-    const calculatedScore = resumeData ? calculateResumeScore(resumeData) : 0
+    const xyzFeedback = await getJsonFromS3<any>(`uploads/${userId}/xyz-feedback.json`)
+    const calculatedScore = resumeData ? calculateResumeScoreDetailed(resumeData, xyzFeedback).totalScore : 0
 
     const newSubmission: ResumeSubmission = {
       id: Buffer.from(s3Key + Date.now()).toString("base64"),
       fileName,
       s3Key,
       uploadedAt: new Date().toISOString(),
-      // Use calculated score from resume data, or 0 if not parsed yet
       score: calculatedScore,
     }
 
@@ -132,6 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     metadata.submissions.unshift(newSubmission) // Add to beginning (most recent first)
+    metadata.submissions = metadata.submissions.slice(0, 10) // Limit to last 10
 
     await putJsonToS3(metadataKey, metadata)
 
