@@ -113,16 +113,27 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
             setXyzFeedback(feedbackResult.data)
             if (feedbackResult.data.actionableInsights) {
               setActionableInsights(feedbackResult.data.actionableInsights)
+            } else {
+              setActionableInsights([])
             }
-          } else if (result.success && result.data) {
-            // No cached feedback — auto-generate it in the background
+          } else {
+            setXyzFeedback(null)
+            setActionableInsights([])
+            if (result.success && result.data) {
+              generateXyzFeedback(result.data)
+            }
+          }
+        } else {
+          setXyzFeedback(null)
+          setActionableInsights([])
+          if (result.success && result.data) {
             generateXyzFeedback(result.data)
           }
-        } else if (result.success && result.data) {
-          generateXyzFeedback(result.data)
         }
       } catch {
         // No cached feedback found — auto-generate if resume data exists
+        setXyzFeedback(null)
+        setActionableInsights([])
         if (result.success && result.data) {
           generateXyzFeedback(result.data)
         }
