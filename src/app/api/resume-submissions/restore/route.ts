@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
     const targetFeedbackData = await getJsonFromS3<any>(`uploads/${userId}/xyz-feedback-${id}.json`)
     if (targetFeedbackData) {
       await putJsonToS3(`uploads/${userId}/xyz-feedback.json`, targetFeedbackData)
+    } else {
+      const { deleteFromS3 } = await import("@/lib/aws/s3")
+      await deleteFromS3(`uploads/${userId}/xyz-feedback.json`).catch(() => {})
     }
 
     const accurateScore = calculateResumeScoreDetailed(targetResumeData, targetFeedbackData).totalScore
