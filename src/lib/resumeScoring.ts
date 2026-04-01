@@ -256,10 +256,10 @@ export function getScoreStatus(score: number): {
   color: string
   bgColor: string
 } {
-  if (score >= 80) return { label: "Excellent", color: "text-emerald-600", bgColor: "bg-emerald-500" }
-  if (score >= 65) return { label: "Very Good", color: "text-green-600", bgColor: "bg-green-500" }
-  if (score >= 50) return { label: "Good", color: "text-blue-600", bgColor: "bg-blue-500" }
-  if (score >= 35) return { label: "Fair", color: "text-amber-600", bgColor: "bg-amber-500" }
+  if (score >= 80) return { label: "Excellent", color: "text-green-600", bgColor: "bg-green-600" }
+  if (score >= 65) return { label: "Very Good", color: "text-green-500", bgColor: "bg-green-500" }
+  if (score >= 50) return { label: "Good", color: "text-yellow-600", bgColor: "bg-yellow-500" }
+  if (score >= 35) return { label: "Fair", color: "text-orange-600", bgColor: "bg-orange-500" }
   return { label: "Needs Work", color: "text-red-600", bgColor: "bg-red-500" }
 }
 

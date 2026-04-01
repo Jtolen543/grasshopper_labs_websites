@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
@@ -26,12 +26,12 @@ import {
 } from "recharts"
 import { useUser } from "@clerk/nextjs"
 import { useResume } from "@/contexts/resume-context"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import type { QuestionnaireData } from "@/app/questionnaire/data"
 import { ActionableInsights } from "@/components/actionable-insights"
-import { calculateResumeScoreDetailed, getScoreStatus, getImprovementMessage, getScoreBreakdown, type ResumeScoreResult } from "@/lib/resumeScoring"
+import { calculateResumeScoreDetailed, getScoreStatus, getScoreBreakdown, type ResumeScoreResult } from "@/lib/resumeScoring"
 import { useSignInLogger } from "@/hooks/use-signin-logger"
 import { XYZInlineFeedback, getXYZScoreColor } from "@/components/xyz-inline-feedback"
 
@@ -59,7 +59,7 @@ const mockStudentData = {
   },
 }
 
-const INTERNSHIP_AVG_GPA = 3.6
+const INTERNSHIP_AVG_GPA = 3.3
 
 // Helper function to calculate year in school from start and end dates
 function calculateYearInSchool(endDate?: string, startDate?: string): number {
@@ -126,10 +126,7 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>GPA Analysis</CardTitle>
-            <CardDescription>Your academic standing and competitiveness</CardDescription>
-          </div>
+          <CardTitle>GPA Analysis</CardTitle>
           <Badge variant="outline" className={zone.textColor}>
             {zone.label}
           </Badge>
@@ -235,7 +232,13 @@ function GPAProgressBar({ gpa }: { gpa: number }) {
 
         <div className="bg-muted/50 p-4 rounded-lg">
           <p className="text-sm">
-            {gpa >= INTERNSHIP_AVG_GPA ? (
+            {gpa < 3.0 ? (
+              <>
+                <span className="font-semibold text-red-600">Consider omitting.</span> Generally, it&apos;s recommended
+                to leave your GPA off your resume if it&apos;s below a 3.0. Focus on highlighting your technical projects
+                and relevant experience instead!
+              </>
+            ) : gpa >= INTERNSHIP_AVG_GPA ? (
               <>
                 <span className="font-semibold text-green-600">Great position!</span> Your GPA is{" "}
                 {gpa > INTERNSHIP_AVG_GPA ? "above" : "at"} the average for students who secured
@@ -268,7 +271,6 @@ function YearInSchoolIndicator({ currentYear }: { currentYear: number }) {
     <Card>
       <CardHeader>
         <CardTitle>Academic Progress</CardTitle>
-        <CardDescription>Your current year and recommended focus areas</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="relative">
@@ -561,7 +563,6 @@ function SkillsRadarChart({
     <Card>
       <CardHeader>
         <CardTitle>Skills Portfolio</CardTitle>
-        <CardDescription>Your extracted skills and recommendations based on target roles</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-72 mb-6">
@@ -784,7 +785,6 @@ function ProjectPortfolioSummary({
     <Card>
       <CardHeader>
         <CardTitle>Project Portfolio</CardTitle>
-        <CardDescription>Insights into your projects and alignment with career goals</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Stats Row */}
@@ -833,7 +833,7 @@ function ProjectPortfolioSummary({
             projects.map((p, i) => (
               <div
                 key={i}
-                className="p-3 border rounded-lg bg-muted/5 dark:bg-muted/20 space-y-2"
+                className="p-4 rounded-xl bg-muted/20 border-l-[3px] border-l-primary/40 space-y-2.5 hover:bg-muted/30 transition-colors"
               >
                 <div className="flex justify-between items-start gap-4">
                   <div>
@@ -958,10 +958,7 @@ function OverallResumeScore({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Resume Score</CardTitle>
-              <CardDescription>Overall strength based on quality & quantity metrics</CardDescription>
-            </div>
+            <CardTitle>Resume Score</CardTitle>
             <Badge variant="outline" className={status.color}>
               {status.label}
             </Badge>
@@ -973,62 +970,56 @@ function OverallResumeScore({
             <div className="flex flex-col items-center justify-center">
               <div className="relative w-48 h-48">
                 <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none" className="text-muted" />
+                  <defs>
+                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="oklch(0.55 0.22 264)" />
+                      <stop offset="50%" stopColor="oklch(0.60 0.24 303)" />
+                      <stop offset="100%" stopColor="oklch(0.65 0.22 330)" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="10" fill="none" className="text-muted/50" />
                   <circle
-                    cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none"
+                    cx="96" cy="96" r="70" stroke="url(#scoreGradient)" strokeWidth="10" fill="none"
                     strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
-                    className={cn("transition-all duration-1000 ease-out", status.bgColor)}
+                    className="transition-all duration-1000 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-5xl font-bold">{totalScore}</span>
-                  <span className="text-sm text-muted-foreground">out of 100</span>
+                  <span className="text-5xl font-bold tracking-tight">{totalScore}</span>
+                  <span className="text-xs text-muted-foreground mt-1">/ 100</span>
                 </div>
               </div>
             </div>
 
-            {/* Score Breakdown with Quality + Quantity */}
+            {/* Score Breakdown */}
             <div className="space-y-3">
               {scoreResult?.breakdown.map((item) => {
                 const Icon = categoryIcons[item.category] || Database
                 const colors = categoryColors[item.category] || { color: 'text-muted', bgColor: 'bg-muted' }
                 return (
                   <div key={item.category} className="flex items-center gap-3">
-                    <Icon className={cn("h-5 w-5", colors.color)} />
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50", colors.color)}>
+                      <Icon className="h-4 w-4" />
+                    </div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm mb-1">
                         <span className="font-medium">{item.category}</span>
-                        <span className="text-muted-foreground">
-                          {item.combinedScore}/100 <span className="text-xs">({item.weight}%)</span>
+                        <span className="text-muted-foreground text-xs">
+                          {item.combinedScore}%
+                          <span className="opacity-60 ml-1">({item.weight}% weight)</span>
                         </span>
                       </div>
-                      <div className="relative h-2 w-full rounded-full overflow-hidden bg-muted mt-1">
+                      <div className="relative h-1.5 w-full rounded-full overflow-hidden bg-muted">
                         <div
-                          className={cn("h-full transition-all", colors.bgColor)}
+                          className={cn("h-full rounded-full transition-all duration-700", colors.bgColor)}
                           style={{ width: `${item.combinedScore}%` }}
                         />
                       </div>
-                      {/* Quality vs Quantity mini-labels */}
-                      <div className="flex justify-between text-xs text-muted-foreground mt-0.5">
-                        <span>Q: {item.qualityScore}</span>
-                        <span>Qty: {item.quantityScore}</span>
-                      </div>
                     </div>
-                    <span className="text-sm font-semibold w-8 text-right">+{item.contribution}</span>
                   </div>
                 )
               })}
             </div>
-          </div>
-
-          {/* How to improve section */}
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">How to improve: </span>
-              {scoreResult ? getImprovementMessage(totalScore, scoreResult.breakdown) : (
-                "Upload a resume to get personalized improvement suggestions."
-              )}
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -1053,7 +1044,7 @@ function ResumeCompletenessScore({ resume }: { resume: typeof mockStudentData.re
 
   const getStatusInfo = (score: number) => {
     if (score >= 90) return { color: "text-green-600", bg: "bg-green-600", label: "Excellent" }
-    if (score >= 75) return { color: "text-blue-600", bg: "bg-blue-600", label: "Very Good" }
+    if (score >= 75) return { color: "text-green-500", bg: "bg-green-500", label: "Very Good" }
     if (score >= 60) return { color: "text-yellow-600", bg: "bg-yellow-600", label: "Good" }
     if (score >= 40) return { color: "text-orange-600", bg: "bg-orange-600", label: "Fair" }
     return { color: "text-red-600", bg: "bg-red-600", label: "Needs Work" }
@@ -1067,10 +1058,7 @@ function ResumeCompletenessScore({ resume }: { resume: typeof mockStudentData.re
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Resume Completeness</CardTitle>
-            <CardDescription>How complete is your profile?</CardDescription>
-          </div>
+          <CardTitle>Resume Completeness</CardTitle>
           <Badge variant="outline" className={status.color}>
             {status.label}
           </Badge>
@@ -1284,7 +1272,6 @@ function ExperienceSummary({
     <Card>
       <CardHeader>
         <CardTitle>Professional Experience</CardTitle>
-        <CardDescription>Your work history, research, and career alignment</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Stats */}
@@ -1336,7 +1323,7 @@ function ExperienceSummary({
         </div>
 
         {/* Experience list */}
-        <div className="space-y-3 max-h-80 overflow-y-auto">
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
           {experiences.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Briefcase className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -1351,8 +1338,8 @@ function ExperienceSummary({
                 <div
                   key={idx}
                   className={cn(
-                    "p-3 border rounded-lg bg-muted/5 dark:bg-muted/20 space-y-2",
-                    isRelevant && roleTypes.length > 0 && "border-primary/30"
+                    "p-4 rounded-xl bg-muted/20 border-l-[3px] space-y-2 hover:bg-muted/30 transition-colors",
+                    isRelevant && roleTypes.length > 0 ? "border-l-primary/60" : "border-l-muted-foreground/20"
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -1432,34 +1419,32 @@ function JobPreferencesSummary({ preferences }: { preferences: QuestionnaireData
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Job Preferences Snapshot</CardTitle>
-        <CardDescription>Highlights from your latest questionnaire</CardDescription>
+        <CardTitle>Job Preferences</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Column-based layout instead of row-based badges */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {sections.map((section) => (
             <div key={section.label} className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground border-b pb-1">{section.label}</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.label}</h4>
               {section.values.length > 0 ? (
-                <ul className="space-y-1">
+                <div className="flex flex-wrap gap-1.5">
                   {section.values.slice(0, 5).map((value) => (
-                    <li
+                    <Badge
                       key={`${section.label}-${value}`}
-                      className="text-sm text-muted-foreground flex items-start gap-2"
+                      variant="secondary"
+                      className="text-xs rounded-full px-2.5 py-0.5"
                     >
-                      <Check className="h-3 w-3 mt-1 text-green-500 flex-shrink-0" />
-                      <span className="line-clamp-2">{value}</span>
-                    </li>
+                      {value}
+                    </Badge>
                   ))}
                   {section.values.length > 5 && (
-                    <li className="text-xs text-muted-foreground/70 italic pl-5">
-                      +{section.values.length - 5} more
-                    </li>
+                    <Badge variant="outline" className="text-xs rounded-full px-2.5 py-0.5 opacity-60">
+                      +{section.values.length - 5}
+                    </Badge>
                   )}
-                </ul>
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground italic">Not set</p>
+                <p className="text-xs text-muted-foreground italic">Not set</p>
               )}
             </div>
           ))}
@@ -1658,10 +1643,7 @@ function RoleSkillsMatch({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Role-Relevant Skills Match</CardTitle>
-        <CardDescription>
-          Top 3 fields that best match your extracted skills. Click to see details.
-        </CardDescription>
+        <CardTitle>Role-Skills Match</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-2 gap-6">
@@ -1867,17 +1849,16 @@ export default function DashboardPage() {
   // Show loading state
   if (isResumeLoading) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
-            <p className="mt-2 text-muted-foreground">Loading resume...</p>
+      <div className="min-h-screen bg-background p-6 md:p-10">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10">
+            <div className="skeleton-loader h-10 w-72 mb-3" />
+            <div className="skeleton-loader h-4 w-48" />
           </div>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-              <p className="mt-4 text-muted-foreground">Loading your resume data...</p>
-            </div>
+          <div className="skeleton-loader h-12 w-full max-w-2xl mx-auto mb-8" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="skeleton-loader h-64" />
+            <div className="skeleton-loader h-64" />
           </div>
         </div>
       </div>
@@ -1887,28 +1868,21 @@ export default function DashboardPage() {
   // Show message if no resume data
   if (!resumeData) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
-            <p className="mt-2 text-muted-foreground">Upload a resume to get started</p>
+      <div className="min-h-screen bg-background p-6 md:p-10">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10">
+            <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
           </div>
 
-          <Alert className="mb-6">
-            <AlertTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              No Resume Data Found
-            </AlertTitle>
-            <AlertDescription>
-              <p className="mb-4">Upload and verify your resume to see your personalized dashboard with real data.</p>
-              <Button asChild>
-                <Link href="/">Upload Resume</Link>
-              </Button>
-            </AlertDescription>
-          </Alert>
-
-          <div className="text-muted-foreground">
-            <p>Using mock data for demonstration purposes...</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6">
+              <FileText className="h-10 w-10 text-primary animate-pulse-subtle" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">No Resume Yet</h2>
+            <p className="text-muted-foreground text-sm mb-6 text-center max-w-md">Upload your resume to unlock personalized analytics, scoring, and career insights.</p>
+            <Button asChild size="lg" className="rounded-xl px-8">
+              <Link href="/">Upload Resume</Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -1916,14 +1890,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
-          <p className="mt-2 text-muted-foreground">Your personalized insights</p>
+    <div className="min-h-screen bg-background p-6 md:p-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold tracking-tight">
+            Welcome back{user?.firstName ? `, ${user.firstName}` : ""}
+          </h1>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="grid w-full max-w-2xl grid-cols-4 mx-auto">
             <TabsTrigger value="overall" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />

@@ -9,6 +9,7 @@ interface ResumeSubmission {
   s3Key: string
   uploadedAt: string
   score: number
+  isStarred?: boolean
 }
 
 interface XYZFeedbackItem {
@@ -43,6 +44,9 @@ interface ResumeContextType {
   actionableInsights: ActionableInsight[]
   showFeedback: boolean
   toggleFeedback: () => void
+  addXp: (amount: number) => void
+  setCharacterClass: (c: string) => void
+  debugSetLevel: (level: number) => void
 }
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined)
@@ -109,16 +113,27 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
             setXyzFeedback(feedbackResult.data)
             if (feedbackResult.data.actionableInsights) {
               setActionableInsights(feedbackResult.data.actionableInsights)
+            } else {
+              setActionableInsights([])
             }
-          } else if (result.success && result.data) {
-            // No cached feedback — auto-generate it in the background
+          } else {
+            setXyzFeedback(null)
+            setActionableInsights([])
+            if (result.success && result.data) {
+              generateXyzFeedback(result.data)
+            }
+          }
+        } else {
+          setXyzFeedback(null)
+          setActionableInsights([])
+          if (result.success && result.data) {
             generateXyzFeedback(result.data)
           }
-        } else if (result.success && result.data) {
-          generateXyzFeedback(result.data)
         }
       } catch {
         // No cached feedback found — auto-generate if resume data exists
+        setXyzFeedback(null)
+        setActionableInsights([])
         if (result.success && result.data) {
           generateXyzFeedback(result.data)
         }
@@ -152,9 +167,9 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   }
 
   // Load on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadResumeData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -171,6 +186,9 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
         actionableInsights,
         showFeedback,
         toggleFeedback,
+        addXp: () => {},
+        setCharacterClass: () => {},
+        debugSetLevel: () => {},
       }}
     >
       {children}

@@ -25,7 +25,9 @@ import {
   AlertTriangle,
   Link as LinkIcon,
   BarChart3,
-  Edit
+  Edit,
+  Star,
+  RotateCcw
 } from "lucide-react"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
@@ -44,7 +46,7 @@ import { ResumeEditor } from "@/components/profile/resume-editor"
 import { useResume } from "@/contexts/resume-context"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 
-interface ResumeSubmission {
+export interface ResumeSubmission {
   id: string
   fileName: string
   s3Key: string
@@ -144,8 +146,23 @@ function ResumePreviewDialog({ submission }: { submission: ResumeSubmission }) {
   )
 }
 
-function ResumeSubmissionCard({ submission }: { submission: ResumeSubmission }) {
+function ResumeSubmissionCard({ 
+  submission, 
+  isActive, 
+  onRestore
+}: { 
+  submission: ResumeSubmission, 
+  isActive: boolean,
+  onRestore: (id: string) => Promise<void>
+}) {
   const isPdf = submission.fileName.toLowerCase().endsWith(".pdf")
+  const [isRestoring, setIsRestoring] = useState(false)
+
+  const handleRestoreClick = async () => {
+    setIsRestoring(true)
+    await onRestore(submission.id)
+    setIsRestoring(false)
+  }
 
   return (
     <Card className="hover:shadow-md transition-shadow mb-4">
@@ -174,6 +191,12 @@ function ResumeSubmissionCard({ submission }: { submission: ResumeSubmission }) 
               </Badge>
             </div>
             <div className="flex gap-2">
+              {!isActive && (
+                <Button variant="outline" size="sm" onClick={handleRestoreClick} disabled={isRestoring}>
+                  {isRestoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+                  Restore
+                </Button>
+              )}
               {isPdf && <ResumePreviewDialog submission={submission} />}
             </div>
           </div>
@@ -316,6 +339,29 @@ export default function ProfilePage() {
     }
   }, [isLoaded])
 
+  const handleRestore = async (id: string) => {
+    try {
+      const res = await fetch("/api/resume-submissions/restore", {
+        method: "POST",
+        body: JSON.stringify({ id })
+      })
+      const result = await res.json()
+      if (result.success) {
+        setResumeData(result.data)
+        setSubmissions(prev => {
+          const removed = prev.filter(s => s.id !== result.submission.id)
+          return [result.submission, ...removed]
+        })
+        await refreshResumeData()
+        toast.success("Resume restored successfully!")
+      } else {
+        toast.error(result.error)
+      }
+    } catch (e) {
+      toast.error("An error occurred")
+    }
+  }
+
   const handleClearAll = async () => {
     setIsClearing(true)
     try {
@@ -403,9 +449,11 @@ export default function ProfilePage() {
                 <CardContent className="flex-1 p-0">
                   <ScrollArea className="h-[400px] md:h-[600px]">
                     <div className="p-4 space-y-2">
-                      {submissions.map(sub => (
+                      {submissions.map((sub, index) => (
                         <div key={sub.id} className="text-sm p-3 border rounded-lg hover:bg-muted/50 transition-colors group bg-card">
-                          <div className="font-medium truncate mb-1">{sub.fileName}</div>
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="font-medium truncate flex-1">{sub.fileName}</div>
+                          </div>
                           <div className="flex justify-between items-center text-xs text-muted-foreground">
                             <span>{formatChartDate(sub.uploadedAt)}</span>
                             <Badge variant="secondary" className="text-[10px] h-5">{sub.score}</Badge>
@@ -500,7 +548,14 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 ) : (
-                  submissions.map(s => <ResumeSubmissionCard key={s.id} submission={s} />)
+                  submissions.map((s, idx) => (
+                    <ResumeSubmissionCard 
+                      key={s.id} 
+                      submission={s} 
+                      isActive={idx === 0}
+                      onRestore={handleRestore}
+                    />
+                  ))
                 )}
               </CardContent>
             </Card>
