@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Lightbulb, Save, CheckCircle2, AlertTriangle } from "lucide-react"
@@ -70,7 +70,6 @@ export function ActionableInsights({ insights: initialInsights, onInsightsChange
     const totalCount = insights.length
     const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
-    // Group by priority: high = critical, low = nice to have
     const highPriority = insights.filter(i => i.priority === "high")
     const lowPriority = insights.filter(i => i.priority === "low")
 
@@ -79,10 +78,10 @@ export function ActionableInsights({ insights: initialInsights, onInsightsChange
             <div
                 key={insight.id}
                 className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border transition-all",
+                    "flex items-start gap-3 p-3 rounded-xl transition-all duration-200",
                     insight.checked
-                        ? "bg-muted/30 border-muted opacity-60"
-                        : "border-border"
+                        ? "bg-muted/20 opacity-50"
+                        : "bg-muted/30 hover:bg-muted/50"
                 )}
             >
                 <Checkbox
@@ -94,7 +93,7 @@ export function ActionableInsights({ insights: initialInsights, onInsightsChange
                 <label
                     htmlFor={insight.id}
                     className={cn(
-                        "text-sm cursor-pointer block flex-1",
+                        "text-sm cursor-pointer block flex-1 leading-relaxed",
                         insight.checked && "line-through text-muted-foreground"
                     )}
                 >
@@ -110,14 +109,14 @@ export function ActionableInsights({ insights: initialInsights, onInsightsChange
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Lightbulb className="h-5 w-5" />
-                        Actionable Insights
+                        Insights
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="text-center py-8 text-muted-foreground">
-                        <CheckCircle2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p className="font-medium">Your resume looks great!</p>
-                        <p className="text-sm mt-1">No improvements suggested at this time.</p>
+                        <CheckCircle2 className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                        <p className="font-medium text-sm">Looking good!</p>
+                        <p className="text-xs mt-1">No improvements suggested right now.</p>
                     </div>
                 </CardContent>
             </Card>
@@ -128,24 +127,20 @@ export function ActionableInsights({ insights: initialInsights, onInsightsChange
         <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <Lightbulb className="h-5 w-5" />
-                            Actionable Insights
-                        </CardTitle>
-                        <CardDescription>
-                            AI-generated recommendations based on your resume analysis
-                        </CardDescription>
-                    </div>
+                    <CardTitle className="flex items-center gap-2">
+                        <Lightbulb className="h-5 w-5" />
+                        Insights
+                    </CardTitle>
                     <div className="flex items-center gap-3">
                         <div className="text-right">
-                            <p className="text-2xl font-bold">{completedCount}/{totalCount}</p>
-                            <p className="text-xs text-muted-foreground">{progressPercent}% done</p>
+                            <p className="text-lg font-bold leading-none">{completedCount}/{totalCount}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{progressPercent}% done</p>
                         </div>
                         <Button
                             onClick={handleSave}
                             disabled={isSaving || !hasChanges}
                             size="sm"
+                            className="rounded-lg"
                         >
                             <Save className="h-4 w-4 mr-1" />
                             {isSaving ? "Saving..." : "Save"}
@@ -153,37 +148,38 @@ export function ActionableInsights({ insights: initialInsights, onInsightsChange
                     </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="w-full h-2 bg-muted rounded-full overflow-hidden mt-4">
+                {/* Gradient progress bar */}
+                <div className="w-full h-1 bg-muted rounded-full overflow-hidden mt-3">
                     <div
-                        className="h-full bg-foreground transition-all duration-500"
-                        style={{ width: `${progressPercent}%` }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                            width: `${progressPercent}%`,
+                            background: "linear-gradient(90deg, oklch(0.55 0.22 264), oklch(0.60 0.24 303), oklch(0.65 0.22 330))",
+                        }}
                     />
                 </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
-                {/* High Priority — red icon */}
                 {highPriority.length > 0 && (
                     <div className="space-y-2">
-                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-red-500" />
-                            High Priority ({highPriority.filter(i => !i.checked).length} remaining)
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <AlertTriangle className="h-3 w-3 text-red-500" />
+                            High Priority · {highPriority.filter(i => !i.checked).length} remaining
                         </h4>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             {highPriority.map(renderInsightItem)}
                         </div>
                     </div>
                 )}
 
-                {/* Nice to Have — green icon */}
                 {lowPriority.length > 0 && (
                     <div className="space-y-2">
-                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                            <Lightbulb className="h-4 w-4 text-green-500" />
-                            Nice to Have ({lowPriority.filter(i => !i.checked).length} remaining)
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <Lightbulb className="h-3 w-3 text-green-500" />
+                            Nice to Have · {lowPriority.filter(i => !i.checked).length} remaining
                         </h4>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             {lowPriority.map(renderInsightItem)}
                         </div>
                     </div>
