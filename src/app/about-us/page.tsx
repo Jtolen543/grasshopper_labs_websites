@@ -57,11 +57,13 @@ export default function AboutUsPage() {
             The Team
           </Badge>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Meet the Builders
+            About Us
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            We are a group of passionate developers, designers, and researchers building the future of career progression.
-          </p>
+          <div className="space-y-4">
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              We built this site based on information found from past research where students may benefit from learning which factors could benefit them the most in obtaining an internship. We aim to help students further their career and guide them in the correct direction.
+            </p>
+          </div>
         </div>
 
         {/* Students Grid */}

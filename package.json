@@ -28,6 +28,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
+    "framer-motion": "^12.35.2",
     "lucide-react": "^0.544.0",
     "mammoth": "^1.11.0",
     "next": "15.5.9",

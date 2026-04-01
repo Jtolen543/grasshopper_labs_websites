@@ -5,7 +5,7 @@ import { useDropzone } from "react-dropzone"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Edit, ArrowLeft, Cpu } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertCircle, X, Rocket, Loader2, FileUp, Edit, ArrowLeft, Cpu, Sparkles, ArrowRight } from "lucide-react"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -19,6 +19,7 @@ import { toast } from "sonner"
 import { ResumeVerification } from "@/components/resume-verification"
 import { useResume } from "@/contexts/resume-context"
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs"
+import { motion } from "framer-motion"
 
 interface UploadedFile {
   name: string
@@ -372,19 +373,30 @@ export function ResumeUpload() {
       )}
 
       <SignedOut>
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign in to continue</CardTitle>
-            <CardDescription>
-              Please sign in with Clerk to upload your resume and unlock the job preferences workflow.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <SignInButton mode="modal">
-              <Button size="lg">Sign in to get started</Button>
-            </SignInButton>
-          </CardContent>
-        </Card>
+        <motion.div
+           initial={{ opacity: 0, scale: 0.95 }}
+           animate={{ opacity: 1, scale: 1 }}
+           transition={{ duration: 0.5, ease: "easeOut" }}
+           className="relative overflow-hidden rounded-2xl border border-primary/20 bg-background/50 backdrop-blur-xl p-8 text-center max-w-lg mx-auto shadow-[0_0_40px_-15px_rgba(var(--primary),0.3)] z-10"
+        >
+          {/* Subtle glowing background effect */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] -z-10 pointer-events-none" />
+          
+          <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.2)]">
+            <Sparkles className="w-6 h-6 text-primary" />
+          </div>
+          
+          <h2 className="text-3xl font-bold tracking-tight mb-3">Sign in to continue</h2>
+          <p className="text-muted-foreground mb-8 text-sm leading-relaxed max-w-sm mx-auto">
+             Please sign in to securely upload your resume and unlock personalized career pathing insights.
+          </p>
+          
+          <SignInButton mode="modal">
+            <Button size="lg" className="w-full h-12 text-md rounded-full shadow-[0_0_20px_rgba(var(--primary),0.2)] hover:shadow-[0_0_30px_rgba(var(--primary),0.4)] transition-all bg-primary hover:bg-primary/90">
+              Sign in to get started <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </SignInButton>
+        </motion.div>
       </SignedOut>
 
       <SignedIn>
