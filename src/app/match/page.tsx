@@ -326,7 +326,7 @@ export default function MatchPage() {
                 <div className="text-center py-12 text-muted-foreground">
                   <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-40" />
                   <p className="font-medium text-sm">No suggestions yet</p>
-                  <p className="text-xs mt-1">Click "Generate" to discover your best-fit roles</p>
+                  <p className="text-xs mt-1">Click &quot;Generate&quot; to discover your best-fit roles</p>
                 </div>
               )}
             </CardContent>

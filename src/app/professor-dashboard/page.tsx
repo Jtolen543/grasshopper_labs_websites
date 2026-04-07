@@ -166,7 +166,7 @@ export default function ProfessorDashboard() {
                           <TrendingUp className="h-5 w-5" /> Curriculum Success
                         </h4>
                         <p className="text-sm text-foreground/80 leading-relaxed md:text-base">
-                          Students in this course demonstrated a <b>40% increase</b> in algorithmic problem-solving terminology (e.g. "time-complexity", "Big-O", "optimization") compared to their pre-course baseline. They are highly competitive for algorithmic interview rounds.
+                          Students in this course demonstrated a <b>40% increase</b> in algorithmic problem-solving terminology (e.g. &quot;time-complexity&quot;, &quot;Big-O&quot;, &quot;optimization&quot;) compared to their pre-course baseline. They are highly competitive for algorithmic interview rounds.
                         </p>
                       </div>
 
