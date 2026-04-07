@@ -8,7 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import {
   TrendingUp, Target, Check, Github, Linkedin, Globe, Briefcase, Award, Users, X,
   GraduationCap, FolderKanban, Building2, Code, Database, Cloud, Cpu, Star, FileText,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CareerPathCourseworkChart } from "@/components/career-path-radar"
@@ -687,6 +687,7 @@ function ProjectPortfolioSummary({
   xyzFeedback?: Record<number, { score: number; xyz_analysis: string; improvements: string[] }>
   showFeedback?: boolean
 }) {
+  const [currentProjectIdx, setCurrentProjectIdx] = useState(0)
   const projectCount = projects.length
 
   // Categorize projects based on technologies
@@ -822,19 +823,41 @@ function ProjectPortfolioSummary({
         </div>
 
         {/* Project List */}
-        <div className="space-y-3">
-          {projects.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No projects found in your resume</p>
-              <p className="text-sm mt-1">Add projects to showcase your hands-on experience!</p>
-            </div>
-          ) : (
-            projects.map((p, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl bg-muted/20 border-l-[3px] border-l-primary/40 space-y-2.5 hover:bg-muted/30 transition-colors"
-              >
+        {/* Project Carousel */}
+        {projects.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No projects found in your resume</p>
+            <p className="text-sm mt-1">Add projects to showcase your hands-on experience!</p>
+          </div>
+        ) : (() => {
+          const p = projects[currentProjectIdx]
+          const i = currentProjectIdx
+          return (
+            <div>
+              {/* Nav header */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setCurrentProjectIdx(Math.max(0, currentProjectIdx - 1))}
+                  disabled={currentProjectIdx === 0}
+                  className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {currentProjectIdx + 1} of {projects.length}
+                </span>
+                <button
+                  onClick={() => setCurrentProjectIdx(Math.min(projects.length - 1, currentProjectIdx + 1))}
+                  disabled={currentProjectIdx === projects.length - 1}
+                  className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Current project card */}
+              <div key={currentProjectIdx} className="p-4 rounded-xl bg-muted/20 border-l-[3px] border-l-primary/40 space-y-2.5 animate-carousel-in">
                 <div className="flex justify-between items-start gap-4">
                   <div>
                     <p className="font-semibold">{p.name}</p>
@@ -848,7 +871,6 @@ function ProjectPortfolioSummary({
                     </Badge>
                   )}
                 </div>
-                {/* Project bullet points */}
                 {p.highlights && p.highlights.length > 0 && (
                   <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
                     {p.highlights.map((h: string, hIdx: number) => (
@@ -882,14 +904,29 @@ function ProjectPortfolioSummary({
                     )}
                   </div>
                 )}
-                {/* Inline XYZ Analysis */}
                 {showFeedback && xyzFeedback?.[i] && (
                   <XYZInlineFeedback feedback={xyzFeedback[i]} />
                 )}
               </div>
-            ))
-          )}
-        </div>
+
+              {/* Dot indicators */}
+              {projects.length > 1 && (
+                <div className="flex justify-center gap-1.5 mt-3">
+                  {projects.map((_, dotIdx) => (
+                    <button
+                      key={dotIdx}
+                      onClick={() => setCurrentProjectIdx(dotIdx)}
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-all",
+                        dotIdx === currentProjectIdx ? "bg-primary w-4" : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </CardContent>
     </Card>
   )
@@ -1164,6 +1201,7 @@ function ExperienceSummary({
   xyzFeedback?: Record<number, { score: number; xyz_analysis: string; improvements: string[] }>
   showFeedback?: boolean
 }) {
+  const [currentExpIdx, setCurrentExpIdx] = useState(0)
   const totalCount = experiences.length
 
   // Categorize each experience by type
@@ -1322,86 +1360,122 @@ function ExperienceSummary({
           </div>
         </div>
 
-        {/* Experience list */}
-        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-          {experiences.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Briefcase className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No experience found in your resume</p>
-              <p className="text-sm mt-1">Add internships, jobs, research, or other roles to showcase your background!</p>
-            </div>
-          ) : (
-            experiences.map((exp, idx) => {
-              const isRelevant = calculateRelevance(exp)
-              const expType = categorizeExperience(exp)
-              return (
-                <div
-                  key={idx}
-                  className={cn(
-                    "p-4 rounded-xl bg-muted/20 border-l-[3px] space-y-2 hover:bg-muted/30 transition-colors",
-                    isRelevant && roleTypes.length > 0 ? "border-l-primary/60" : "border-l-muted-foreground/20"
-                  )}
+        {/* Experience Carousel */}
+        {experiences.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Briefcase className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No experience found in your resume</p>
+            <p className="text-sm mt-1">Add internships, jobs, research, or other roles to showcase your background!</p>
+          </div>
+        ) : (() => {
+          const exp = experiences[currentExpIdx]
+          const idx = currentExpIdx
+          const isRelevant = calculateRelevance(exp)
+          const expType = categorizeExperience(exp)
+          return (
+            <div>
+              {/* Nav header */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setCurrentExpIdx(Math.max(0, currentExpIdx - 1))}
+                  disabled={currentExpIdx === 0}
+                  className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-medium text-sm">{exp.position}</p>
-                      <p className="text-xs text-muted-foreground">{exp.company}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <div className="flex gap-1.5">
-                        <Badge className={cn("text-xs", typeBadgeColor[expType] || 'bg-muted text-muted-foreground')}>
-                          {expType}
-                        </Badge>
-                        {isRelevant && roleTypes.length > 0 && (
-                          <Badge variant="outline" className="border-primary/50 text-primary">
-                            <Target className="h-3 w-3 mr-1" /> Relevant
-                          </Badge>
-                        )}
-                      </div>
-                      {showFeedback && xyzFeedback?.[idx] && (
-                        <Badge variant="outline" className={cn("text-xs font-bold", getXYZScoreColor(xyzFeedback[idx].score))}>
-                          {xyzFeedback[idx].score}/100
-                        </Badge>
-                      )}
-                    </div>
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {currentExpIdx + 1} of {experiences.length}
+                </span>
+                <button
+                  onClick={() => setCurrentExpIdx(Math.min(experiences.length - 1, currentExpIdx + 1))}
+                  disabled={currentExpIdx === experiences.length - 1}
+                  className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Current experience card */}
+              <div
+                key={currentExpIdx}
+                className={cn(
+                  "p-4 rounded-xl bg-muted/20 border-l-[3px] space-y-2 animate-carousel-in",
+                  isRelevant && roleTypes.length > 0 ? "border-l-primary/60" : "border-l-muted-foreground/20"
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-sm">{exp.position}</p>
+                    <p className="text-xs text-muted-foreground">{exp.company}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(exp.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                    {" \u2014 "}
-                    {exp.end_date ? new Date(exp.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : "Present"}
-                  </p>
-                  {/* Responsibilities & Achievements */}
-                  {(exp.responsibilities.length > 0 || exp.achievements.length > 0) && (
-                    <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                      {exp.responsibilities.map((r, rIdx) => (
-                        <li key={`r-${rIdx}`}>{r}</li>
-                      ))}
-                      {exp.achievements.map((a, aIdx) => (
-                        <li key={`a-${aIdx}`}>{a}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {exp.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {exp.technologies.slice(0, 5).map((tech, tidx) => (
-                        <Badge key={tidx} variant="secondary" className="text-xs">
-                          {tech}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className="flex gap-1.5">
+                      <Badge className={cn("text-xs", typeBadgeColor[expType] || 'bg-muted text-muted-foreground')}>
+                        {expType}
+                      </Badge>
+                      {isRelevant && roleTypes.length > 0 && (
+                        <Badge variant="outline" className="border-primary/50 text-primary">
+                          <Target className="h-3 w-3 mr-1" /> Relevant
                         </Badge>
-                      ))}
-                      {exp.technologies.length > 5 && (
-                        <Badge variant="secondary" className="text-xs">+{exp.technologies.length - 5}</Badge>
                       )}
                     </div>
-                  )}
-                  {/* Inline XYZ Analysis */}
-                  {showFeedback && xyzFeedback?.[idx] && (
-                    <XYZInlineFeedback feedback={xyzFeedback[idx]} />
-                  )}
+                    {showFeedback && xyzFeedback?.[idx] && (
+                      <Badge variant="outline" className={cn("text-xs font-bold", getXYZScoreColor(xyzFeedback[idx].score))}>
+                        {xyzFeedback[idx].score}/100
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              )
-            })
-          )}
-        </div>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(exp.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  {" \u2014 "}
+                  {exp.end_date ? new Date(exp.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : "Present"}
+                </p>
+                {(exp.responsibilities.length > 0 || exp.achievements.length > 0) && (
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                    {exp.responsibilities.map((r, rIdx) => (
+                      <li key={`r-${rIdx}`}>{r}</li>
+                    ))}
+                    {exp.achievements.map((a, aIdx) => (
+                      <li key={`a-${aIdx}`}>{a}</li>
+                    ))}
+                  </ul>
+                )}
+                {exp.technologies.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {exp.technologies.slice(0, 5).map((tech, tidx) => (
+                      <Badge key={tidx} variant="secondary" className="text-xs">
+                        {tech}
+                      </Badge>
+                    ))}
+                    {exp.technologies.length > 5 && (
+                      <Badge variant="secondary" className="text-xs">+{exp.technologies.length - 5}</Badge>
+                    )}
+                  </div>
+                )}
+                {showFeedback && xyzFeedback?.[idx] && (
+                  <XYZInlineFeedback feedback={xyzFeedback[idx]} />
+                )}
+              </div>
+
+              {/* Dot indicators */}
+              {experiences.length > 1 && (
+                <div className="flex justify-center gap-1.5 mt-3">
+                  {experiences.map((_, dotIdx) => (
+                    <button
+                      key={dotIdx}
+                      onClick={() => setCurrentExpIdx(dotIdx)}
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-all",
+                        dotIdx === currentExpIdx ? "bg-primary w-4" : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </CardContent>
     </Card>
   )
