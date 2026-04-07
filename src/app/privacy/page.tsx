@@ -33,7 +33,7 @@ export default function PrivacyPolicyPage() {
 
           <h3 className="text-lg font-semibold mb-2">3. Third-Party Data Processing</h3>
           <p className="text-muted-foreground mb-4">
-            We leverage OpenAI's API to analyze your resume and generate insights. We transmit the text of your resume to OpenAI exclusively for processing. OpenAI's API data usage policies strictly govern how they handle API data. 
+            We leverage OpenAI&apos;s API to analyze your resume and generate insights. We transmit the text of your resume to OpenAI exclusively for processing. OpenAI&apos;s API data usage policies strictly govern how they handle API data. 
             We do not use your resume data to train our own foundational AI models, and processing is done solely to provide you with the Vistern service.
           </p>
         </section>
