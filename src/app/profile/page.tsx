@@ -27,7 +27,8 @@ import {
   BarChart3,
   Edit,
   Star,
-  RotateCcw
+  RotateCcw,
+  Settings
 } from "lucide-react"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
@@ -413,7 +414,11 @@ export default function ProfilePage() {
               <div className="text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</div>
             </div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer select-none" onClick={(e) => { e.preventDefault(); toggleFeedback(); }}>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" asChild className="gap-2">
+              <Link href="/settings"><Settings className="h-4 w-4" /> Settings</Link>
+            </Button>
+            <label className="flex items-center gap-2 cursor-pointer select-none" onClick={(e) => { e.preventDefault(); toggleFeedback(); }}>
             <div
               className={cn(
                 "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
@@ -428,7 +433,8 @@ export default function ProfilePage() {
               />
             </div>
             <span className="text-sm font-medium text-muted-foreground">AI Feedback</span>
-          </label>
+            </label>
+          </div>
         </div>
 
         <Tabs defaultValue="editor" className="space-y-6">

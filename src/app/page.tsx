@@ -1,17 +1,23 @@
-import { ResumeUpload } from "@/components/resume-upload"
+import { HeroSection } from "@/components/landing/hero-section";
+import { FeatureBentoGrid } from "@/components/landing/feature-bento-grid";
+import { ResumeUpload } from "@/components/resume-upload";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-4">Resume Upload</h1>
-            <p className="text-muted-foreground text-lg">Upload your resume and we&apos;ll store it securely for you</p>
-          </div>
-          <ResumeUpload />
-        </div>
-      </div>
-    </main>
-  )
+    <div className="min-h-screen bg-background text-foreground overflow-hidden selection:bg-primary/30">
+      <main className="container mx-auto px-4 pt-10 pb-20 space-y-12">
+        {/* Hero Section with embedded Resume Upload instead of default buttons */}
+        <HeroSection
+          actionContent={
+            <div className="w-full max-w-2xl mx-auto mt-8 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both">
+              <ResumeUpload />
+            </div>
+          }
+        />
+        
+        {/* Explains site value propositions clearly to users scrolling down */}
+        <FeatureBentoGrid />
+      </main>
+    </div>
+  );
 }
