@@ -13,6 +13,7 @@ export function HeroSection({ actionContent }: { actionContent?: React.ReactNode
         <video
           autoPlay
           muted
+          loop
           playsInline
           preload="auto"
           className="w-full h-full object-cover opacity-100"

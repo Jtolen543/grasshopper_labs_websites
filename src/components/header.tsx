@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { FileText, Menu, LogOut, LayoutDashboard, User, Upload, Info, Settings } from "lucide-react"
+import { FileText, Menu, LogOut, LayoutDashboard, User, Upload, Info, Settings, Target } from "lucide-react"
 import {
   SignedIn,
   SignedOut,
@@ -37,6 +37,7 @@ export function Header() {
             <SignedIn>
               <NavButton href="/" icon={Upload} label="Upload" />
               <NavButton href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+              <NavButton href="/match" icon={Target} label="Match" />
               <NavButton href="/profile" icon={User} label="Profile" />
               <NavButton href="/settings" icon={Settings} label="Settings" />
             </SignedIn>
