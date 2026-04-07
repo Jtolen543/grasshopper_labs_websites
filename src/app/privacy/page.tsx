@@ -21,24 +21,21 @@ export default function PrivacyPolicyPage() {
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold border-b border-border/50 pb-2">Information We Collect</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            When you use ResumeHub, we collect the resume text and files you voluntarily upload to our platform, as well as necessary account information to provide our services.
+          <p className="text-muted-foreground mb-4">
+            When you use Vistern, we collect the resume text and files you voluntarily upload to our platform, as well as necessary account information to provide our services.
           </p>
-        </section>
+          <h3 className="text-lg font-semibold mb-2">2. How We Use Information</h3>
+          <ul className="list-disc pl-5 text-muted-foreground mb-4 space-y-2">
+            <li>To provide AI-driven resume parsing and career pathing recommendations.</li>
+            <li>To improve our internal parsing algorithms for better accuracy.</li>
+            <li>To maintain and secure your account.</li>
+          </ul>
 
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold border-b border-border/50 pb-2 text-primary/90">How We Use Large Language Models (LLMs)</h2>
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-4">
-            <p className="text-foreground font-medium">
-              We leverage advanced Large Language Models (LLMs) to enhance your experience.
-            </p>
-            <p className="text-muted-foreground leading-relaxed">
-              When you upload your resume, we use LLMs to securely parse and analyze the text. This parsed data is used exclusively to evaluate your experience, match your skills against job requirements, and generate the tailored visuals and insights displayed on your personalized dashboard.
-            </p>
-            <p className="text-muted-foreground leading-relaxed">
-              We do not use your resume data to train our own foundational AI models, and processing is done solely to provide you with the ResumeHub service.
-            </p>
-          </div>
+          <h3 className="text-lg font-semibold mb-2">3. Third-Party Data Processing</h3>
+          <p className="text-muted-foreground mb-4">
+            We leverage OpenAI's API to analyze your resume and generate insights. We transmit the text of your resume to OpenAI exclusively for processing. OpenAI's API data usage policies strictly govern how they handle API data. 
+            We do not use your resume data to train our own foundational AI models, and processing is done solely to provide you with the Vistern service.
+          </p>
         </section>
 
         <section className="space-y-4">

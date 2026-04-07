@@ -26,7 +26,7 @@ export function Header() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <FileText className="h-5 w-5" />
             </div>
-            <span className="text-xl font-semibold hidden sm:inline-block">ResumeHub</span>
+            <span className="text-xl font-semibold hidden sm:inline-block">Vistern</span>
           </Link>
 
           {/* Centered Navigation - Desktop */}

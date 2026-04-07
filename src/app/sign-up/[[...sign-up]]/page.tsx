@@ -12,7 +12,7 @@ export default function SignUpPage() {
       <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
         <div className="max-w-md w-full bg-background rounded-xl shadow-lg border border-border/50 p-6 md:p-8 space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">Welcome to ResumeHub</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Welcome to Vistern</h1>
             <p className="text-muted-foreground">Before we create your account, please review our data usage policy.</p>
           </div>
 

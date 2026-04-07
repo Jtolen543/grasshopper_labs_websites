@@ -6,7 +6,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">ResumeHub</h3>
+            <h3 className="text-lg font-semibold">Vistern</h3>
             <p className="text-sm text-muted-foreground">
               Helping college students in tech find their perfect job match through AI-powered resume analysis.
             </p>
@@ -60,7 +60,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground text-center">
-            © {new Date().getFullYear()} ResumeHub. All rights reserved.
+            © {new Date().getFullYear()} Vistern. All rights reserved.
           </p>
         </div>
       </div>

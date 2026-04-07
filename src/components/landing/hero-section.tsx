@@ -10,16 +10,23 @@ export function HeroSection({ actionContent }: { actionContent?: React.ReactNode
     <section className="relative flex flex-col items-center justify-center text-center mt-4 pt-16 pb-16 min-h-[75vh]">
       {/* Background Video acting as an intro sequence */}
       <div className="absolute inset-0 w-full h-full overflow-hidden z-0 rounded-3xl border border-primary/20 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)]">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-100"
-        >
-          <source src="/videos/tree-growth-gen.mp4" type="video/mp4" />
-        </video>
+        <div
+          className="w-full h-full"
+          dangerouslySetInnerHTML={{
+            __html: `
+              <video 
+                autoplay 
+                muted 
+                loop 
+                playsinline 
+                preload="auto" 
+                class="w-full h-full object-cover opacity-100"
+              >
+                <source src="/videos/tree-growth-gen.mp4" type="video/mp4" />
+              </video>
+            `
+          }}
+        />
         {/* Lighter overlay to ensure the video remains visible while preserving textual readability */}
         <div className="absolute inset-0 bg-background/40 pointer-events-none" />
       </div>
@@ -51,7 +58,7 @@ export function HeroSection({ actionContent }: { actionContent?: React.ReactNode
 
         {actionContent || (
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/login">
+            <Link href="/sign-up">
               <Button size="lg" className="h-12 px-8 text-lg rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.5)] transition-shadow">
                 Get Started <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
