@@ -149,7 +149,7 @@ Analyze this CS student's resume and provide:
 1. XYZ Formula Analysis for each project and experience item:
    - Score (0-100) based on "Accomplished [X] as measured by [Y], by doing [Z]"
    - Brief analysis of adherence
-   - 2-3 rewritten versions that improve it
+   - 2-3 rewritten versions that improve it. (CRITICAL EXCEPTION: If the original experience or project has 0 bullet points, generate a MAXIMUM of 2 bullet points total. Do not generate more than 2.)
 
 2. Actionable Insights (two types):
 

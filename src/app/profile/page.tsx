@@ -319,7 +319,23 @@ export default function ProfilePage() {
   const [submissions, setSubmissions] = useState<ResumeSubmission[]>([])
   const [isLoadingSubs, setIsLoadingSubs] = useState(true)
   const [isClearing, setIsClearing] = useState(false)
+  
+  // Master Profile state
+  const [masterProfile, setMasterProfile] = useState<Resume | null>(null)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
 
+  // Fetch Master Profile
+  const fetchMasterProfile = async () => {
+    try {
+      const response = await fetch("/api/profile")
+      const result = await response.json()
+      if (result.success) setMasterProfile(result.data)
+    } catch (err) {
+      console.error("Failed to fetch master profile")
+    } finally {
+      setIsLoadingProfile(false)
+    }
+  }
 
   // Fetch submissions independently from resumeData context
   const fetchSubmissions = async () => {
@@ -337,6 +353,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (isLoaded) {
       fetchSubmissions()
+      fetchMasterProfile()
     }
   }, [isLoaded])
 
@@ -378,20 +395,22 @@ export default function ProfilePage() {
     }
   }
 
-  const handleSaveResume = async (data: Resume) => {
+  const handleSaveMasterProfile = async (data: Resume) => {
     try {
-      const res = await fetch("/api/resume", {
+      const res = await fetch("/api/profile", {
         method: "POST",
         body: JSON.stringify(data)
       })
       const result = await res.json()
       if (result.success) {
-        await refreshResumeData()
+        setMasterProfile(result.data)
+        toast.success("Master Profile saved successfully!")
       } else {
         throw new Error(result.error)
       }
     } catch (e) {
       console.error(e)
+      toast.error("Failed to save Master Profile")
       throw e
     }
   }
@@ -439,7 +458,7 @@ export default function ProfilePage() {
 
         <Tabs defaultValue="editor" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
-            <TabsTrigger value="editor" className="gap-2"><Edit className="h-4 w-4" /> Editor</TabsTrigger>
+            <TabsTrigger value="editor" className="gap-2"><User className="h-4 w-4" /> Master Profile</TabsTrigger>
             <TabsTrigger value="stats" className="gap-2"><BarChart3 className="h-4 w-4" /> Statistics</TabsTrigger>
             <TabsTrigger value="history" className="gap-2"><Calendar className="h-4 w-4" /> History</TabsTrigger>
           </TabsList>
@@ -477,13 +496,29 @@ export default function ProfilePage() {
 
               {/* Main Editor */}
               <div className="md:col-span-3">
-                {resumeData ? (
-                  <ResumeEditor initialData={resumeData} onSave={handleSaveResume} />
+                <Card className="mb-4">
+                  <CardHeader className="py-4 bg-muted/30 border-b">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                        <User className="h-5 w-5 text-primary" />
+                        Comprehensive Master Profile
+                    </CardTitle>
+                    <CardDescription>
+                        This is your global record. Every time you upload a resume, new experiences and projects are automatically merged here. In the future, you can use this comprehensive list to tailor resumes for specific job matches.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+                {isLoadingProfile ? (
+                    <Card className="flex flex-col items-center justify-center p-12 h-[400px]">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        <p className="mt-4 text-muted-foreground">Loading Master Profile...</p>
+                    </Card>
+                ) : masterProfile ? (
+                  <ResumeEditor initialData={masterProfile} onSave={handleSaveMasterProfile} />
                 ) : (
                   <Card className="flex flex-col items-center justify-center p-12 text-center h-[400px] border-dashed">
                     <FileText className="h-12 w-12 opacity-20 mb-4" />
-                    <h3 className="text-lg font-semibold">No Resume Data</h3>
-                    <p className="text-muted-foreground mb-4">Upload a resume to populate this editor</p>
+                    <h3 className="text-lg font-semibold">No Profile Data</h3>
+                    <p className="text-muted-foreground mb-4">Upload a resume to automatically initialize your Master Profile.</p>
                     <Button asChild><Link href="/">Upload Resume</Link></Button>
                   </Card>
                 )}

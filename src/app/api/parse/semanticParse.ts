@@ -25,6 +25,8 @@ CRITICAL RULES:
 2. For projects:
    - "description" should be a brief one-line summary ONLY if the resume provides one (otherwise leave empty string).
    - "highlights" MUST contain every individual bullet point / line item listed under the project, copied EXACTLY as written in the resume (with corrected spacing). Do NOT combine or summarize bullets.
+3. For education:
+   - "gpa" MUST only be populated if a GPA is explicitly listed on the resume. If no GPA is found, you MUST omit it or leave it null. Do NOT assume or default it to 0.
 3. For experience:
    - "responsibilities" MUST contain every individual bullet point listed, copied EXACTLY as written (with corrected spacing).
    - "achievements" should contain any explicitly stated achievements or metrics.

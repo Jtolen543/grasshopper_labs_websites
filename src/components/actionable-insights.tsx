@@ -6,12 +6,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Lightbulb, Save, CheckCircle2, FileEdit, Download,
-  GraduationCap, Briefcase, Rocket, Zap, Compass
+  Lightbulb, Save, CheckCircle2, FileEdit, FileSearch,
+  GraduationCap, Briefcase, Rocket, Zap, Compass, Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import type { Resume } from "@/app/api/parse/resumeSchema"
+import { LaTeXPreviewModal, type BulletDiff } from "@/components/latex-preview-modal"
 
 interface ActionableInsight {
   id: string
@@ -71,6 +72,9 @@ export function ActionableInsights({ insights: initialInsights, currentYear, gra
   const [isExporting, setIsExporting] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [activeYear, setActiveYear] = useState(currentYear)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewLatex, setPreviewLatex] = useState("")
+  const [previewDiffs, setPreviewDiffs] = useState<BulletDiff[]>([])
 
   useEffect(() => {
     setInsights(initialInsights)
@@ -109,6 +113,36 @@ export function ActionableInsights({ insights: initialInsights, currentYear, gra
       })
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleExportLatex = async (instructions: string = "") => {
+    setIsExporting(true)
+    setPreviewOpen(true)
+    if (!instructions) {
+      setPreviewLatex("")
+      setPreviewDiffs([])
+    }
+    try {
+      const response = await fetch("/api/export/latex?preview=true", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeData,
+          tweaks: tweaks.map(t => ({ insight: t.insight, category: t.category })),
+          xyzImprovements: xyzFeedback ? { projects: xyzFeedback.projects, experience: xyzFeedback.experience } : null,
+          customInstructions: instructions
+        }),
+      })
+      if (!response.ok) throw new Error("Export failed")
+      const data = await response.json()
+      setPreviewLatex(data.latex || "")
+      setPreviewDiffs(data.diffs || [])
+    } catch {
+      toast.error("Failed to generate preview", { description: "Please try again" })
+      setPreviewOpen(false)
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -269,36 +303,10 @@ export function ActionableInsights({ insights: initialInsights, currentYear, gra
                     variant="outline"
                     className="h-7 px-2 text-xs gap-1"
                     disabled={isExporting || !resumeData}
-                    onClick={async () => {
-                      setIsExporting(true)
-                      try {
-                        const response = await fetch("/api/export/latex", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            resumeData,
-                            tweaks: tweaks.map(t => ({ insight: t.insight, category: t.category })),
-                            xyzImprovements: xyzFeedback ? { projects: xyzFeedback.projects, experience: xyzFeedback.experience } : null,
-                          }),
-                        })
-                        if (!response.ok) throw new Error("Export failed")
-                        const blob = await response.blob()
-                        const url = URL.createObjectURL(blob)
-                        const a = document.createElement("a")
-                        a.href = url
-                        a.download = "resume.tex"
-                        a.click()
-                        URL.revokeObjectURL(url)
-                        toast.success("LaTeX resume downloaded!", { description: "Open it in Overleaf to compile" })
-                      } catch {
-                        toast.error("Failed to export", { description: "Please try again" })
-                      } finally {
-                        setIsExporting(false)
-                      }
-                    }}
+                    onClick={() => handleExportLatex("")}
                   >
-                    <Download className="h-3 w-3" />
-                    {isExporting ? "Exporting..." : "LaTeX"}
+                    <FileSearch className="h-3 w-3" />
+                    {isExporting ? <Loader2 className="h-3 w-3 animate-spin"/> : "Export LaTeX"}
                   </Button>
                 </div>
               </div>
@@ -391,6 +399,14 @@ export function ActionableInsights({ insights: initialInsights, currentYear, gra
           </div>
         </div>
       </CardContent>
+
+      <LaTeXPreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        latex={previewLatex}
+        diffs={previewDiffs}
+        isLoading={isExporting}
+      />
     </Card>
   )
 }
