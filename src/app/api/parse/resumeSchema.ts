@@ -20,7 +20,7 @@ export const EducationItemSchema = z.object({
   field: z.string(),
   start_date: z.string(),
   end_date: z.string(),
-  gpa: z.number(),
+  gpa: z.union([z.number(), z.string(), z.null()]).optional(),
   achievements: z.array(z.string()),
 });
 

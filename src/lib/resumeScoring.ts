@@ -96,7 +96,9 @@ export function calculateResumeScoreDetailed(
   const experienceAnalysis = analyzeExperienceQuality(resume.experience)
   const skillsAnalysis = analyzeSkillsQuality(resume.skills)
   const linksAnalysis = analyzeLinksQuality(resume.basics)
-  const gpaAnalysis = analyzeGPAQuality(resume.education?.[0]?.gpa || 0)
+  const rawGpa = resume.education?.[0]?.gpa;
+  const numGpa = typeof rawGpa === 'string' ? parseFloat(rawGpa) : (rawGpa || 0);
+  const gpaAnalysis = analyzeGPAQuality(numGpa)
   const courseworkAnalysis = analyzeCourseworkQuality(resume.education)
 
   // Calculate AI-enhanced quality scores if XYZ feedback is available

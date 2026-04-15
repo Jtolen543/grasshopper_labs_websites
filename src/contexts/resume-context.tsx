@@ -28,8 +28,10 @@ interface ActionableInsight {
   id: string
   category: string
   insight: string
-  priority: "high" | "low"
+  priority: "high" | "medium" | "low"
   checked: boolean
+  type?: "tweak" | "goal"
+  targetYear?: number
 }
 
 interface ResumeContextType {
@@ -50,6 +52,32 @@ interface ResumeContextType {
 }
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined)
+
+function calculateYearsRemaining(endDate?: string, startDate?: string): number {
+  const now = new Date()
+
+  if (!endDate) {
+    // No end date — assume 4 years remaining
+    if (startDate) {
+      const start = new Date(startDate)
+      const monthsSinceStart = (now.getFullYear() - start.getFullYear()) * 12 +
+        (now.getMonth() - start.getMonth())
+      return Math.max(1, 4 - Math.floor(monthsSinceStart / 12))
+    }
+    return 4
+  }
+
+  const gradDate = new Date(endDate)
+
+  // Already graduated
+  if (gradDate < now) return 1
+
+  // Calculate years remaining from now to graduation
+  const msRemaining = gradDate.getTime() - now.getTime()
+  const yearsRemaining = Math.ceil(msRemaining / (365.25 * 24 * 60 * 60 * 1000))
+
+  return Math.max(1, yearsRemaining) // at least 1
+}
 
 export function ResumeProvider({ children }: { children: ReactNode }) {
   const [resumeData, setResumeData] = useState<Resume | null>(null)
@@ -149,10 +177,30 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
   // Auto-generate XYZ feedback when none is cached
   const generateXyzFeedback = async (data: Resume) => {
     try {
+      // Compute yearInSchool from the resume education data
+      const yearsRemaining = calculateYearsRemaining(
+        data.education?.[0]?.end_date,
+        data.education?.[0]?.start_date
+      )
+
+      // Fetch survey/questionnaire preferences
+      let preferences = null
+      try {
+        const prefResponse = await fetch("/api/preferences")
+        if (prefResponse.ok) {
+          const prefResult = await prefResponse.json()
+          if (prefResult.success && prefResult.data) {
+            preferences = prefResult.data
+          }
+        }
+      } catch {
+        // Preferences not available — insights will still generate without them
+      }
+
       const response = await fetch("/api/analyze/xyz-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeData: data }),
+        body: JSON.stringify({ resumeData: data, yearInSchool: yearsRemaining, preferences }),
       })
       const result = await response.json()
       if (result.success && result.data) {

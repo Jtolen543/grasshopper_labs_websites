@@ -943,7 +943,7 @@ interface ResumeScoreProps {
   roleTypes?: string[]
   techSectors?: string[]
   resumeData?: any
-  aiInsights?: { id: string; category: string; insight: string; priority: "high" | "low"; checked: boolean }[]
+  aiInsights?: { id: string; category: string; insight: string; priority: "high" | "medium" | "low"; checked: boolean; type?: "tweak" | "goal"; targetYear?: number }[]
   xyzFeedback?: { projects: Record<number, any>; experience: Record<number, any> } | null
   showFeedback?: boolean
 }
@@ -1997,7 +1997,7 @@ export default function DashboardPage() {
             {questionnaireData && <JobPreferencesSummary preferences={questionnaireData} />}
 
             <OverallResumeScore
-              gpa={studentData.gpa}
+              gpa={typeof studentData.gpa === 'string' ? parseFloat(studentData.gpa) || 0 : (studentData.gpa || 0)}
               skills={studentData.skills}
               resume={studentData.resume}
               projects={resumeData?.projects || []}
@@ -2011,9 +2011,19 @@ export default function DashboardPage() {
               showFeedback={showFeedback}
             />
 
-            {showFeedback && actionableInsights && actionableInsights.length > 0 && (
-              <ActionableInsights insights={actionableInsights} />
-            )}
+            {showFeedback && actionableInsights && actionableInsights.length > 0 && (() => {
+              const currentYear = new Date().getFullYear();
+              const graduationYear = currentYear + (4 - studentData.yearInSchool);
+              return (
+                <ActionableInsights 
+                  insights={actionableInsights} 
+                  currentYear={currentYear} 
+                  graduationYear={graduationYear}
+                  resumeData={resumeData}
+                  xyzFeedback={xyzFeedback}
+                />
+              );
+            })()}
 
             <Accordion type="multiple" className="space-y-4" defaultValue={["resume-overview"]}>
               <AccordionItem value="resume-overview" className="border rounded-lg px-4">
@@ -2056,7 +2066,7 @@ export default function DashboardPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <GPAProgressBar gpa={studentData.gpa} />
+                  <GPAProgressBar gpa={typeof studentData.gpa === 'string' ? parseFloat(studentData.gpa) || 0 : (studentData.gpa || 0)} />
                 </AccordionContent>
               </AccordionItem>
 

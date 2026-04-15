@@ -2,10 +2,12 @@ import { z } from "zod"
 
 export const actionableInsightSchema = z.object({
     id: z.string(),
-    category: z.enum(['projects', 'experience', 'skills', 'gpa', 'coursework', 'links']),
+    category: z.enum(['projects', 'experience', 'skills', 'gpa', 'coursework', 'links', 'formatting']),
     insight: z.string(),
     priority: z.enum(['high', 'medium', 'low']),
     checked: z.boolean(),
+    type: z.enum(['tweak', 'goal']).default('tweak'),
+    targetYear: z.number().nullable().default(null),
 })
 
 export const userInsightsSchema = z.object({

@@ -337,12 +337,14 @@ export function analyzeLinksQuality(basics: Resume['basics']): {
 /**
  * Analyze GPA with threshold-based scoring
  */
-export function analyzeGPAQuality(gpa: number): {
+export function analyzeGPAQuality(gpa: number | string): {
   score: number
   tier: 'excellent' | 'good' | 'fair' | 'needs_improvement' | 'not_provided'
   insights: string[]
 } {
-  if (!gpa || gpa === 0) {
+  const numericGpa = typeof gpa === 'string' ? parseFloat(gpa) : gpa;
+  
+  if (!numericGpa || numericGpa === 0 || isNaN(numericGpa)) {
     return {
       score: 0,
       tier: 'not_provided',
@@ -351,21 +353,21 @@ export function analyzeGPAQuality(gpa: number): {
   }
   
   // Threshold-based scoring
-  if (gpa >= 3.7) {
+  if (numericGpa >= 3.7) {
     return {
       score: 100,
       tier: 'excellent',
       insights: ['Your GPA is excellent - highlight it prominently!']
     }
   }
-  if (gpa >= 3.3) {
+  if (numericGpa >= 3.3) {
     return {
       score: 80,
       tier: 'good',
       insights: ['Your GPA is competitive for most roles']
     }
   }
-  if (gpa >= 3.0) {
+  if (numericGpa >= 3.0) {
     return {
       score: 60,
       tier: 'fair',
@@ -495,7 +497,9 @@ export function generateAllInsights(resume: Resume): ActionableInsight[] {
     })
   }
   
-  const gpaAnalysis = analyzeGPAQuality(resume.education?.[0]?.gpa || 0)
+  const gpaVal = resume.education?.[0]?.gpa;
+  const numericGpa = typeof gpaVal === 'string' ? parseFloat(gpaVal) : (gpaVal || 0);
+  const gpaAnalysis = analyzeGPAQuality(numericGpa)
   for (const insight of gpaAnalysis.insights) {
     insights.push({
       id: generateId(),

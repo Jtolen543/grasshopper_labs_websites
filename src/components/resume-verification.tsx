@@ -404,7 +404,10 @@ export function ResumeVerification({ parsedData, onConfirm, onCancel, open }: Re
                       />
                     ) : (
                       <p className="mt-1 text-sm font-medium">
-                        {edu.gpa > 0 ? edu.gpa.toFixed(2) : "N/A"}
+                        {(() => {
+                          const parsedGpa = typeof edu.gpa === 'string' ? parseFloat(edu.gpa) : (edu.gpa || 0);
+                          return parsedGpa > 0 ? parsedGpa.toFixed(2) : "N/A";
+                        })()}
                       </p>
                     )}
                   </div>
