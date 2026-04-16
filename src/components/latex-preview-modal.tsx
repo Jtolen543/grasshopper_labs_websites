@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 export interface BulletDiff {
   section: string
@@ -51,15 +52,22 @@ function stripLatex(s: string): string {
     .trim()
 }
 
-/** Group diffs by section+heading */
-function groupDiffs(diffs: BulletDiff[]): Map<string, BulletDiff[]> {
-  const map = new Map<string, BulletDiff[]>()
-  for (const d of diffs) {
+/** Group diffs by section+heading, keeping original indices */
+function groupDiffs(diffs: BulletDiff[]): Map<string, { diff: BulletDiff, index: number }[]> {
+  const map = new Map<string, { diff: BulletDiff, index: number }[]>()
+  diffs.forEach((d, i) => {
     const key = `${d.section}|||${d.heading}`
     if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(d)
-  }
+    map.get(key)!.push({ diff: d, index: i })
+  })
   return map
+}
+
+function escapeLatex(str: string): string {
+  return str.replace(/\\/g, "\\textbackslash{}")
+            .replace(/([&%$#_{}])/g, "\\$1")
+            .replace(/~/g, "\\textasciitilde{}")
+            .replace(/\^/g, "\\textasciicircum{}");
 }
 
 export function LaTeXPreviewModal({
@@ -72,11 +80,41 @@ export function LaTeXPreviewModal({
 }: LaTeXPreviewModalProps) {
   const overleafFormRef = useRef<HTMLFormElement>(null)
   const [instructions, setInstructions] = useState("")
+  const [activeTab, setActiveTab] = useState("preview")
+  const [rejectedIndices, setRejectedIndices] = useState<Set<number>>(new Set())
+
+  // Reset rejected indices when diffs or latex completely changes
+  // Using an effect with diffs.length or similar could work, but simplest is listening to latex
+  // Wait, if it regenerates latex, we probably want to reset.
+  const latexRef = useRef(latex);
+  if (latexRef.current !== latex) {
+      latexRef.current = latex;
+      setRejectedIndices(new Set());
+  }
 
   const grouped = groupDiffs(diffs)
 
+  const toggleReject = (index: number) => {
+    setRejectedIndices(prev => {
+        const next = new Set(prev)
+        if (next.has(index)) next.delete(index)
+        else next.add(index)
+        return next
+    })
+  }
+
+  const getFinalLatex = () => {
+    let finalLatex = latex
+    for (let i = 0; i < diffs.length; i++) {
+        if (rejectedIndices.has(i)) {
+            finalLatex = finalLatex.replace(diffs[i].improved, escapeLatex(diffs[i].original))
+        }
+    }
+    return finalLatex
+  }
+
   const handleDownload = () => {
-    const blob = new Blob([latex], { type: "application/x-latex" })
+    const blob = new Blob([getFinalLatex()], { type: "application/x-latex" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
@@ -98,7 +136,7 @@ export function LaTeXPreviewModal({
   // Encode the LaTeX as a base64 data URI for Overleaf's snip_uri
   const encodedLatex =
     typeof window !== "undefined"
-      ? `data:application/x-tex;base64,${btoa(unescape(encodeURIComponent(latex)))}`
+      ? `data:application/x-tex;base64,${btoa(unescape(encodeURIComponent(getFinalLatex())))}`
       : ""
 
   return (
@@ -115,7 +153,7 @@ export function LaTeXPreviewModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="preview" className="flex flex-col flex-1 overflow-hidden pointer-events-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 overflow-hidden pointer-events-auto">
           <div className="px-6 border-b shrink-0 bg-muted/20">
             <TabsList className="w-full justify-start h-12 bg-transparent p-0 gap-6 rounded-none">
               <TabsTrigger 
@@ -189,43 +227,56 @@ export function LaTeXPreviewModal({
                       </div>
 
                       {/* Diff cards */}
-                      {items.map((diff, i) => (
+                      {items.map(({ diff, index }) => {
+                        const isRejected = rejectedIndices.has(index);
+                        return (
                         <div
-                          key={i}
-                          className="rounded-lg border overflow-hidden"
+                          key={index}
+                          className={cn("rounded-lg border overflow-hidden relative transition-all duration-200 group", isRejected ? "opacity-60 bg-muted/50 grayscale-[0.5]" : "")}
                         >
+                          <div className="absolute top-2 right-2 z-20 hidden group-hover:block sm:block">
+                              <Button 
+                                  size="sm" 
+                                  variant={isRejected ? "outline" : "ghost"} 
+                                  className="h-7 px-2 text-[10px] uppercase font-bold tracking-wider"
+                                  onClick={() => toggleReject(index)}
+                              >
+                                  {isRejected ? "Restore Change" : "Deny"}
+                              </Button>
+                          </div>
+
                           {/* Original */}
-                          <div className="bg-red-500/5 dark:bg-red-500/10 px-4 py-3 border-b border-red-500/10">
+                          <div className="bg-red-500/5 dark:bg-red-500/10 px-4 py-3 border-b border-red-500/10 sm:pr-24 pr-4">
                             <div className="flex items-start gap-2">
                               <span className="shrink-0 mt-0.5 text-[10px] font-bold text-red-500/70 uppercase tracking-wider">
                                 Before
                               </span>
-                              <p className="text-sm text-red-700 dark:text-red-400 leading-relaxed line-through decoration-red-400/50">
+                              <p className={cn(isRejected ? "text-sm text-foreground leading-relaxed" : "text-sm text-red-700 dark:text-red-400 leading-relaxed line-through decoration-red-400/50")}>
                                 {diff.original}
                               </p>
                             </div>
                           </div>
 
                           {/* Arrow separator */}
-                          <div className="flex items-center justify-center -my-2 relative z-10">
+                          <div className="flex items-center justify-center -my-2 relative z-10 pointer-events-none">
                             <div className="bg-background border rounded-full p-1">
                               <ArrowRight className="h-3 w-3 text-muted-foreground rotate-90" />
                             </div>
                           </div>
 
                           {/* Improved */}
-                          <div className="bg-emerald-500/5 dark:bg-emerald-500/10 px-4 py-3 border-t border-emerald-500/10">
+                          <div className={cn("px-4 py-3 border-t border-emerald-500/10", isRejected ? "bg-muted/10" : "bg-emerald-500/5 dark:bg-emerald-500/10")}>
                             <div className="flex items-start gap-2">
-                              <span className="shrink-0 mt-0.5 text-[10px] font-bold text-emerald-500/70 uppercase tracking-wider">
+                              <span className={cn("shrink-0 mt-0.5 text-[10px] font-bold uppercase tracking-wider", isRejected ? "text-muted-foreground/60" : "text-emerald-500/70")}>
                                 After
                               </span>
-                              <p className="text-sm text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                              <p className={cn("text-sm leading-relaxed", isRejected ? "text-muted-foreground line-through decoration-muted-foreground/50" : "text-emerald-700 dark:text-emerald-400")}>
                                 {stripLatex(diff.improved)}
                               </p>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )
                 })}
@@ -277,12 +328,26 @@ export function LaTeXPreviewModal({
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                 />
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  <span className="font-semibold text-amber-500/80">Warning:</span> The model may hallucinate formatting components if pushed too far outside the template boundaries. Please double check the resulting LaTeX text in Overleaf.
+                </p>
             </div>
             
             <div className="px-6 py-4 border-t bg-muted/10 flex items-center justify-between shrink-0">
-                <p className="text-xs text-muted-foreground">This will override standard styling rules</p>
                 <Button 
-                  onClick={() => onRegenerate?.(instructions)}
+                   size="sm"
+                   variant="outline"
+                   onClick={handleOpenOverleaf}
+                   disabled={isLoading || !latex}
+                   className="gap-1.5"
+                >
+                   <ExternalLink className="h-3.5 w-3.5" />
+                   Open in Overleaf
+                </Button>
+                <Button 
+                  onClick={() => {
+                    onRegenerate?.(instructions)
+                  }}
                   disabled={isLoading}
                   className="gap-2"
                 >

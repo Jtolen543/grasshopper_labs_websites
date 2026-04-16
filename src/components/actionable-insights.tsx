@@ -406,6 +406,7 @@ export function ActionableInsights({ insights: initialInsights, currentYear, gra
         latex={previewLatex}
         diffs={previewDiffs}
         isLoading={isExporting}
+        onRegenerate={handleExportLatex}
       />
     </Card>
   )
