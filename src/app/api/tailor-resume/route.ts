@@ -4,6 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod.mjs"
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { getJsonFromS3 } from "@/lib/aws/s3"
+import { checkAndIncrementLimit } from "@/lib/usageLimits"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 
 const MODEL = "gpt-4.1-mini"
@@ -29,6 +30,15 @@ export async function POST(request: NextRequest) {
     if (!jobDescription?.trim()) {
       return NextResponse.json({ success: false, error: "No job description provided" }, { status: 400 })
     }
+
+    const { allowed, remaining } = await checkAndIncrementLimit(userId, "tailorResume")
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: "Daily tailor resume limit reached (10/day). Try again tomorrow." },
+        { status: 429 }
+      )
+    }
+    void remaining
 
     // Master profile is the bank of all experiences; current resume has latest basics/education
     const [masterProfile, currentResume] = await Promise.all([

@@ -967,6 +967,7 @@ interface ResumeScoreProps {
   aiInsights?: { id: string; category: string; insight: string; priority: "high" | "medium" | "low"; checked: boolean; type?: "tweak" | "goal"; targetYear?: number }[]
   xyzFeedback?: { projects: Record<number, any>; experience: Record<number, any> } | null
   showFeedback?: boolean
+  matchedCourses?: string[]
 }
 
 function OverallResumeScore({
@@ -982,15 +983,40 @@ function OverallResumeScore({
   aiInsights = [],
   xyzFeedback = null,
   showFeedback = true,
+  matchedCourses = [],
 }: ResumeScoreProps) {
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+
+  // Inject matched courses into resumeData for scoring so manual course toggles are reflected
+  const resumeDataToScore = resumeData ? JSON.parse(JSON.stringify(resumeData)) : null;
+  if (resumeDataToScore && matchedCourses.length > 0) {
+    if (!resumeDataToScore.education) resumeDataToScore.education = [];
+    if (resumeDataToScore.education.length === 0) resumeDataToScore.education.push({ achievements: [] });
+    if (!resumeDataToScore.education[0].achievements) resumeDataToScore.education[0].achievements = [];
+    
+    // Add courses to achievements so analyzeCourseworkQuality can see them
+    matchedCourses.forEach(course => {
+      resumeDataToScore.education[0].achievements.push(`Coursework: ${course}`);
+    });
+  }
+
   // Use new scoring system if resumeData is available
-  const scoreResult: ResumeScoreResult | null = resumeData ? calculateResumeScoreDetailed(resumeData, xyzFeedback) : null
+  const scoreResult: ResumeScoreResult | null = resumeDataToScore ? calculateResumeScoreDetailed(resumeDataToScore, xyzFeedback) : null
 
   // Fall back to old scoring if no resumeData
   const totalScore = scoreResult?.totalScore ?? 0
-  const status = getScoreStatus(totalScore)
+  
+  const displayScore = activeCategory 
+    ? scoreResult?.breakdown.find(b => b.category === activeCategory)?.combinedScore ?? 0
+    : totalScore
+    
+  const displayLabel = activeCategory ? activeCategory : "Overall"
+  const isComponentScore = activeCategory !== null
+  const displayTotal = isComponentScore ? 100 : 100 // Both are out of 100
+
+  const status = getScoreStatus(displayScore)
   const circumference = 2 * Math.PI * 70
-  const strokeDashoffset = circumference - (totalScore / 100) * circumference
+  const strokeDashoffset = circumference - (displayScore / 100) * circumference
 
   // Icon mapping for categories
   const categoryIcons: Record<string, typeof FolderKanban> = {
@@ -1042,9 +1068,10 @@ function OverallResumeScore({
                     className="transition-all duration-1000 ease-out"
                   />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-5xl font-bold tracking-tight">{totalScore}</span>
-                  <span className="text-xs text-muted-foreground mt-1">/ 100</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center transition-all duration-300">
+                  <span className="text-5xl font-bold tracking-tight">{displayScore}</span>
+                  <span className="text-xs text-muted-foreground mt-1">/ {displayTotal}</span>
+                  <span className="text-xs font-semibold text-primary mt-2 uppercase tracking-widest">{displayLabel}</span>
                 </div>
               </div>
             </div>
@@ -1055,7 +1082,15 @@ function OverallResumeScore({
                 const Icon = categoryIcons[item.category] || Database
                 const colors = categoryColors[item.category] || { color: 'text-muted', bgColor: 'bg-muted' }
                 return (
-                  <div key={item.category} className="flex items-center gap-3">
+                  <div 
+                    key={item.category} 
+                    className={cn(
+                      "flex items-center gap-3 p-2 rounded-lg transition-all cursor-pointer",
+                      activeCategory === item.category ? "bg-muted/50 scale-[1.02]" : "hover:bg-muted/30"
+                    )}
+                    onMouseEnter={() => setActiveCategory(item.category)}
+                    onMouseLeave={() => setActiveCategory(null)}
+                  >
                     <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50", colors.color)}>
                       <Icon className="h-4 w-4" />
                     </div>
@@ -1889,6 +1924,7 @@ export default function DashboardPage() {
   const { resumeData, isLoading: isResumeLoading, xyzFeedback, showFeedback, actionableInsights } = useResume()
   const [activeTab, setActiveTab] = useState("overall")
   const [questionnaireData, setQuestionnaireData] = useState<QuestionnaireData | null>(null)
+  const [matchedCourses, setMatchedCourses] = useState<string[]>([])
 
   useSignInLogger()
 
@@ -1913,7 +1949,25 @@ export default function DashboardPage() {
         console.error("Error loading questionnaire preferences:", error)
       }
     }
+    
+    const loadMatchedCourses = async () => {
+      try {
+        const response = await fetch("/api/matched-courses")
+        if (response.ok) {
+          const data = await response.json()
+          if (data.matches && isMounted) {
+            // Extract code + name so it gets perfectly matched by the coursework analyzer
+            setMatchedCourses(data.matches.map((m: any) => `${m.ufCourse.code} ${m.ufCourse.name}`))
+          }
+        }
+      } catch (error) {
+        console.error("Error loading matched courses:", error)
+      }
+    }
+
     loadPreferences()
+    loadMatchedCourses()
+    
     return () => { isMounted = false }
   }, [])
 
@@ -2036,6 +2090,7 @@ export default function DashboardPage() {
               aiInsights={showFeedback ? actionableInsights : []}
               xyzFeedback={showFeedback ? xyzFeedback : null}
               showFeedback={showFeedback}
+              matchedCourses={matchedCourses}
             />
 
             {showFeedback && actionableInsights && actionableInsights.length > 0 && (() => {

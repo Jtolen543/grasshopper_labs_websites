@@ -370,6 +370,7 @@ export default function MatchPage() {
   const [isLiveLoading, setIsLiveLoading] = useState(false)
   const [currentJobIdx, setCurrentJobIdx] = useState(0)
   const [tailoringAction, setTailoringAction] = useState<{ idx: number; action: "overleaf" | "download" } | null>(null)
+  const [tailoringAnalyzer, setTailoringAnalyzer] = useState<"overleaf" | "download" | null>(null)
   const overleafFormRef = useRef<HTMLFormElement>(null)
   const overleafInputRef = useRef<HTMLInputElement>(null)
 
@@ -434,46 +435,63 @@ export default function MatchPage() {
     if (result.success) setSavedJobs(result.data)
   }
 
+  const generateTailoredLatex = async (
+    jobTitle: string, jobDescription: string, jobCompany: string, action: "overleaf" | "download"
+  ) => {
+    const tailorRes = await fetch("/api/tailor-resume", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobTitle, jobDescription, jobCompany }),
+    })
+    const tailorResult = await tailorRes.json()
+    if (!tailorResult.success) throw new Error(tailorResult.error)
+    toast.info("Generating tailored LaTeX…")
+
+    if (action === "overleaf") {
+      const latexRes = await fetch("/api/export/latex?mode=overleaf", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeData: tailorResult.data.tailoredResume }),
+      })
+      if (!latexRes.ok) throw new Error("LaTeX generation failed")
+      const { latex } = await latexRes.json()
+      const encoded = `data:application/x-tex;base64,${btoa(unescape(encodeURIComponent(latex)))}`
+      if (overleafInputRef.current) overleafInputRef.current.value = encoded
+      if (overleafFormRef.current) overleafFormRef.current.submit()
+      toast.success("Opening in Overleaf…")
+    } else {
+      const latexRes = await fetch("/api/export/latex", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeData: tailorResult.data.tailoredResume }),
+      })
+      if (!latexRes.ok) throw new Error("LaTeX generation failed")
+      const blob = await latexRes.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `resume-${jobCompany.toLowerCase().replace(/[^a-z0-9]/g, "-") || "tailored"}.tex`
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+      toast.success("Tailored resume downloaded!")
+    }
+  }
+
   const tailorResume = async (job: LiveJob, action: "overleaf" | "download") => {
     setTailoringAction({ idx: currentJobIdx, action })
     try {
-      const tailorRes = await fetch("/api/tailor-resume", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobTitle: job.title, jobDescription: job.description, jobCompany: job.company }),
-      })
-      const tailorResult = await tailorRes.json()
-      if (!tailorResult.success) throw new Error(tailorResult.error)
-      toast.info("Generating tailored LaTeX…")
-
-      if (action === "overleaf") {
-        const latexRes = await fetch("/api/export/latex?mode=overleaf", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeData: tailorResult.data.tailoredResume }),
-        })
-        if (!latexRes.ok) throw new Error("LaTeX generation failed")
-        const { latex } = await latexRes.json()
-        const encoded = `data:application/x-tex;base64,${btoa(unescape(encodeURIComponent(latex)))}`
-        if (overleafInputRef.current) overleafInputRef.current.value = encoded
-        if (overleafFormRef.current) overleafFormRef.current.submit()
-        toast.success("Opening in Overleaf…")
-      } else {
-        const latexRes = await fetch("/api/export/latex", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeData: tailorResult.data.tailoredResume }),
-        })
-        if (!latexRes.ok) throw new Error("LaTeX generation failed")
-        const blob = await latexRes.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `resume-${job.company.toLowerCase().replace(/[^a-z0-9]/g, "-")}.tex`
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
-        toast.success("Tailored resume downloaded!")
-      }
+      await generateTailoredLatex(job.title, job.description, job.company, action)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate resume")
     } finally {
       setTailoringAction(null)
+    }
+  }
+
+  const tailorFromAnalyzer = async (action: "overleaf" | "download") => {
+    setTailoringAnalyzer(action)
+    try {
+      await generateTailoredLatex("", jobDescription, "", action)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate resume")
+    } finally {
+      setTailoringAnalyzer(null)
     }
   }
 
@@ -791,6 +809,25 @@ export default function MatchPage() {
                             </div>
                           ))}
                         </div>
+
+                        {/* Tailor resume for this pasted description */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline" className="w-full rounded-xl gap-1.5" disabled={!!tailoringAnalyzer}>
+                              {tailoringAnalyzer
+                                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Tailoring…</>
+                                : <><FileText className="h-3.5 w-3.5" />Tailor Resume for This Role</>}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="center" className="w-48">
+                            <DropdownMenuItem onClick={() => tailorFromAnalyzer("overleaf")} className="gap-2 text-xs">
+                              <ExternalLink className="h-3.5 w-3.5" />View in Overleaf
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => tailorFromAnalyzer("download")} className="gap-2 text-xs">
+                              <Download className="h-3.5 w-3.5" />Download .tex
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </motion.div>
                     )}
                   </CardContent>

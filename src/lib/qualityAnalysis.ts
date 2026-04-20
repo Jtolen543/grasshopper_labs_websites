@@ -1,4 +1,5 @@
 import type { Resume } from "@/app/api/parse/resumeSchema"
+import { extractCoursework } from "./courseMatching"
 
 /**
  * Quality Analysis Module
@@ -390,7 +391,7 @@ export function analyzeCourseworkQuality(education: Resume['education']): {
   quantityScore: number
   insights: string[]
 } {
-  const achievements = education?.[0]?.achievements || []
+  const achievements = education?.flatMap(e => e.achievements || []) || []
   
   if (achievements.length === 0) {
     return {
@@ -400,31 +401,44 @@ export function analyzeCourseworkQuality(education: Resume['education']): {
     }
   }
   
+  // Try to extract an explicit list of courses
+  const extractedCourses = extractCoursework(achievements)
+  
+  // If we couldn't extract explicit courses, fall back to treating each achievement as a course
+  const courseList = extractedCourses.length > 0 ? extractedCourses : achievements
+  
   const insights: string[] = []
   
   // Quantity: number of courses/achievements listed
-  const quantityScore = Math.min(achievements.length * 20, 100)
+  const quantityScore = Math.min(courseList.length * 20, 100)
   
-  // Quality: analyze course relevance (simple keyword matching for now)
+  // Quality: analyze course relevance
   const relevantKeywords = [
     'data structures', 'algorithms', 'machine learning', 'database',
     'operating systems', 'networks', 'security', 'software engineering',
-    'artificial intelligence', 'computer vision', 'distributed systems'
+    'artificial intelligence', 'computer vision', 'distributed systems',
+    // Common UF CS prefixes
+    'cop', 'cap', 'cda', 'cen', 'cis', 'cnt', 'cot', 'eel', 'sta'
   ]
   
   let relevanceCount = 0
-  for (const achievement of achievements) {
-    const lower = achievement.toLowerCase()
+  for (const course of courseList) {
+    const lower = course.toLowerCase()
     if (relevantKeywords.some(kw => lower.includes(kw))) {
       relevanceCount++
     }
   }
   
-  const qualityScore = achievements.length > 0 
-    ? Math.round((relevanceCount / achievements.length) * 100)
+  let qualityScore = courseList.length > 0 
+    ? Math.round((relevanceCount / courseList.length) * 100)
     : 0
+    
+  // If we extracted explicit codes, boost the quality score
+  if (extractedCourses.length > 0) {
+    qualityScore = Math.max(qualityScore, Math.min(extractedCourses.length * 20, 100))
+  }
   
-  if (achievements.length < 5) {
+  if (courseList.length < 5) {
     insights.push('Add more relevant technical coursework')
   }
   

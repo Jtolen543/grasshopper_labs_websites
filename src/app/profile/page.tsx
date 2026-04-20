@@ -330,6 +330,13 @@ export default function ProfilePage() {
   const interviewCount = jobBoard.filter(j => ["interviewing", "offer"].includes(j.bucket)).length
   const offerCount = jobBoard.filter(j => j.bucket === "offer").length
 
+  // Daily usage limits
+  const [usageLimits, setUsageLimits] = useState<{
+    analyzeMatch: { used: number; limit: number; remaining: number }
+    tailorResume: { used: number; limit: number; remaining: number }
+    isOwner: boolean
+  } | null>(null)
+
   // Fetch Master Profile
   const fetchMasterProfile = async () => {
     try {
@@ -363,6 +370,10 @@ export default function ProfilePage() {
       fetch("/api/job-board")
         .then(r => r.json())
         .then(r => { if (r.success) setJobBoard(r.data) })
+        .catch(() => {})
+      fetch("/api/usage")
+        .then(r => r.json())
+        .then(r => { if (r.success) setUsageLimits(r.data) })
         .catch(() => {})
     }
   }, [isLoaded])
@@ -596,6 +607,55 @@ export default function ProfilePage() {
                 </Card>
               </div>
             </div>
+
+            {/* Daily AI Usage */}
+            {usageLimits && !usageLimits.isOwner && (
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Daily AI Usage</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Analyze Matches</span>
+                        <span className="text-xs text-muted-foreground">{usageLimits.analyzeMatch.used}/{usageLimits.analyzeMatch.limit} used</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2 mb-2">
+                        <div
+                          className="bg-primary rounded-full h-2 transition-all"
+                          style={{ width: `${(usageLimits.analyzeMatch.used / usageLimits.analyzeMatch.limit) * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        <span className={usageLimits.analyzeMatch.remaining === 0 ? "text-destructive font-medium" : "text-green-600 font-medium"}>
+                          {usageLimits.analyzeMatch.remaining} remaining
+                        </span>
+                        {" "}today — resets at midnight
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Tailor Resume</span>
+                        <span className="text-xs text-muted-foreground">{usageLimits.tailorResume.used}/{usageLimits.tailorResume.limit} used</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2 mb-2">
+                        <div
+                          className="bg-primary rounded-full h-2 transition-all"
+                          style={{ width: `${(usageLimits.tailorResume.used / usageLimits.tailorResume.limit) * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        <span className={usageLimits.tailorResume.remaining === 0 ? "text-destructive font-medium" : "text-green-600 font-medium"}>
+                          {usageLimits.tailorResume.remaining} remaining
+                        </span>
+                        {" "}today — resets at midnight
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
 
             <ScoreHistoryChart submissions={submissions} />
 

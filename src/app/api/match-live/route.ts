@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server"
 import { getJsonFromS3, putJsonToS3 } from "@/lib/aws/s3"
 import { generateEmbedding } from "@/lib/embeddings"
 import { searchSimilarDocuments } from "@/lib/vectorSearch"
+import { checkAndIncrementLimit } from "@/lib/usageLimits"
 import type { Resume } from "@/app/api/parse/resumeSchema"
 
 const MODEL = "gpt-4.1-mini"
@@ -322,6 +323,14 @@ export async function POST(): Promise<NR> {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+
+    const { allowed } = await checkAndIncrementLimit(userId, "analyzeMatch")
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: "Daily analyze match limit reached (10/day). Try again tomorrow." },
+        { status: 429 }
+      )
+    }
 
     const resume = await getJsonFromS3<Resume>(`uploads/${userId}/resume-data.json`)
     if (!resume) {
