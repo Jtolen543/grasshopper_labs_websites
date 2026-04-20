@@ -81,25 +81,18 @@ export function LaTeXPreviewModal({
   const overleafFormRef = useRef<HTMLFormElement>(null)
   const [instructions, setInstructions] = useState("")
   const [activeTab, setActiveTab] = useState("preview")
-  const [rejectedIndices, setRejectedIndices] = useState<Set<number>>(new Set())
-
-  // Reset rejected indices when diffs or latex completely changes
-  // Using an effect with diffs.length or similar could work, but simplest is listening to latex
-  // Wait, if it regenerates latex, we probably want to reset.
-  const latexRef = useRef(latex);
-  if (latexRef.current !== latex) {
-      latexRef.current = latex;
-      setRejectedIndices(new Set());
-  }
+  // Co-locate the latex snapshot so indices auto-reset when latex prop changes
+  const [rejectedState, setRejectedState] = useState<{ forLatex: string; indices: Set<number> }>({ forLatex: latex ?? "", indices: new Set() })
+  const rejectedIndices = rejectedState.forLatex === latex ? rejectedState.indices : new Set<number>()
 
   const grouped = groupDiffs(diffs)
 
   const toggleReject = (index: number) => {
-    setRejectedIndices(prev => {
-        const next = new Set(prev)
+    setRejectedState(prev => {
+        const next = new Set(prev.indices)
         if (next.has(index)) next.delete(index)
         else next.add(index)
-        return next
+        return { forLatex: latex ?? "", indices: next }
     })
   }
 

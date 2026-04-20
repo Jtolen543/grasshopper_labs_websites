@@ -26,7 +26,7 @@ CRITICAL RULES:
    - "description" should be a brief one-line summary ONLY if the resume provides one (otherwise leave empty string).
    - "highlights" MUST contain every individual bullet point / line item listed under the project, copied EXACTLY as written in the resume (with corrected spacing). Do NOT combine or summarize bullets.
 3. For education:
-   - "gpa" MUST only be populated if a GPA is explicitly listed on the resume. If no GPA is found, you MUST omit it or leave it null. Do NOT assume or default it to 0.
+   - "gpa" MUST only be populated if a GPA is explicitly stated on the resume. Recognise ALL common formats: plain number ("3.76"), fraction ("3.76/4.0" → extract 3.76), label prefix ("GPA: 3.76", "GPA 3.76", "Cumulative GPA: 3.76"), or inline text ("graduated with a 3.76 GPA"). Always store it as a numeric value (not a string fraction). If no GPA is present anywhere in the resume text, leave it null. Do NOT assume or default it to 0.
 3. For experience:
    - "responsibilities" MUST contain every individual bullet point listed, copied EXACTLY as written (with corrected spacing).
    - "achievements" should contain any explicitly stated achievements or metrics.

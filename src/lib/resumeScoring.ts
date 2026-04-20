@@ -96,8 +96,9 @@ export function calculateResumeScoreDetailed(
   const experienceAnalysis = analyzeExperienceQuality(resume.experience)
   const skillsAnalysis = analyzeSkillsQuality(resume.skills)
   const linksAnalysis = analyzeLinksQuality(resume.basics)
-  const rawGpa = resume.education?.[0]?.gpa;
-  const numGpa = typeof rawGpa === 'string' ? parseFloat(rawGpa) : (rawGpa || 0);
+  const gpaEntry = resume.education?.find(e => e.gpa != null && e.gpa !== "" && e.gpa !== 0)
+  const rawGpa = gpaEntry?.gpa ?? null
+  const numGpa = rawGpa == null ? 0 : (typeof rawGpa === 'string' ? parseFloat(rawGpa) || 0 : Number(rawGpa) || 0);
   const gpaAnalysis = analyzeGPAQuality(numGpa)
   const courseworkAnalysis = analyzeCourseworkQuality(resume.education)
 

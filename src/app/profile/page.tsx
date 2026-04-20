@@ -319,10 +319,16 @@ export default function ProfilePage() {
   const [submissions, setSubmissions] = useState<ResumeSubmission[]>([])
   const [isLoadingSubs, setIsLoadingSubs] = useState(true)
   const [isClearing, setIsClearing] = useState(false)
-  
+
   // Master Profile state
   const [masterProfile, setMasterProfile] = useState<Resume | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
+
+  // Job board stats
+  const [jobBoard, setJobBoard] = useState<Array<{ bucket: string }>>([])
+  const appliedCount = jobBoard.filter(j => ["applied", "interviewing", "offer"].includes(j.bucket)).length
+  const interviewCount = jobBoard.filter(j => ["interviewing", "offer"].includes(j.bucket)).length
+  const offerCount = jobBoard.filter(j => j.bucket === "offer").length
 
   // Fetch Master Profile
   const fetchMasterProfile = async () => {
@@ -354,6 +360,10 @@ export default function ProfilePage() {
     if (isLoaded) {
       fetchSubmissions()
       fetchMasterProfile()
+      fetch("/api/job-board")
+        .then(r => r.json())
+        .then(r => { if (r.success) setJobBoard(r.data) })
+        .catch(() => {})
     }
   }, [isLoaded])
 
@@ -560,6 +570,31 @@ export default function ProfilePage() {
                   <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Current Score</div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Job Activity */}
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Career Activity</p>
+              <div className="grid grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-3xl font-bold text-blue-500">{appliedCount}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Jobs Applied</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-3xl font-bold text-violet-500">{interviewCount}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Interviews</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-3xl font-bold text-green-500">{offerCount}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Offers</div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             <ScoreHistoryChart submissions={submissions} />

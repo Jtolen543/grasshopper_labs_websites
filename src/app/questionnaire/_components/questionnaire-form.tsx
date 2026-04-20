@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 const steps = [
+  { id: "jobType", title: "Job Type", description: "Are you looking for internships or full-time roles?" },
+  { id: "degreeLevel", title: "Degree Level", description: "What education level do jobs you're applying to typically require?" },
   { id: "techSectors", title: "Tech Sectors", description: "What tech sectors interest you?" },
   { id: "roleTypes", title: "Role Types", description: "What roles are you interested in?" },
   { id: "workEnvironment", title: "Work Environment", description: "What's your preferred work setup?" },
@@ -36,7 +38,7 @@ export default function QuestionnaireForm({ initialData }: QuestionnaireFormProp
   const [jsonOutput, setJsonOutput] = useState<QuestionnaireData | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  const defaultValues: QuestionnaireData = initialData ?? {
+  const defaultValues: QuestionnaireData = {
     techSectors: [],
     roleTypes: [],
     workEnvironment: [],
@@ -46,6 +48,9 @@ export default function QuestionnaireForm({ initialData }: QuestionnaireFormProp
     technicalSkills: [],
     location: [],
     salaryExpectations: [],
+    jobType: [],
+    degreeLevel: [],
+    ...(initialData || {}),
   }
 
   const {

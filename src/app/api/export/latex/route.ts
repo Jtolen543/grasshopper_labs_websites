@@ -101,7 +101,6 @@ interface BulletDiff {
     improved: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function collectOriginalBullets(resumeData: any): { section: string; heading: string; bullet: string }[] {
     const bullets: { section: string; heading: string; bullet: string }[] = [];
 
@@ -140,6 +139,7 @@ export async function POST(request: NextRequest) {
 
         const url = new URL(request.url);
         const isPreview = url.searchParams.get("preview") === "true";
+        const isOverleaf = url.searchParams.get("mode") === "overleaf";
 
         const { resumeData, tweaks, xyzImprovements, customInstructions } = await request.json();
 
@@ -268,6 +268,11 @@ ${JAKE_TEMPLATE}
         // Ensure it ends properly
         if (!latex.includes("\\end{document}")) {
             latex += "\n\n\\end{document}\n";
+        }
+
+        // --- Overleaf mode: return raw latex for client-side base64 form POST ---
+        if (isOverleaf) {
+            return NextResponse.json({ latex })
         }
 
         // --- Preview mode: also compute diffs ---

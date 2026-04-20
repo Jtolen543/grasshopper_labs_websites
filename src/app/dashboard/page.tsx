@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
@@ -97,6 +97,27 @@ function calculateYearInSchool(endDate?: string, startDate?: string): number {
 
 // GPA Component
 function GPAProgressBar({ gpa }: { gpa: number }) {
+  if (!gpa || gpa <= 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>GPA Analysis</CardTitle>
+              <CardDescription>Your academic standing and competitiveness</CardDescription>
+            </div>
+            <Badge variant="outline" className="text-muted-foreground">Not Provided</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No GPA was found on your resume. If you have a GPA above 3.0, consider adding it — it can strengthen your application.
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   const getGPAZone = (gpa: number) => {
     if (gpa < 3.0) return { color: "bg-red-500", label: "Needs Improvement", textColor: "text-red-700" }
     if (gpa < 3.4) return { color: "bg-orange-500", label: "Fair", textColor: "text-orange-700" }
@@ -1898,7 +1919,13 @@ export default function DashboardPage() {
 
   // Extract data from resume or use mock data
   const studentData = resumeData ? {
-    gpa: resumeData.education?.[0]?.gpa || 0,
+    gpa: (() => {
+      const entry = resumeData.education?.find((e: any) => e.gpa != null && e.gpa !== "" && e.gpa !== 0)
+      const raw = entry?.gpa ?? null
+      if (raw == null) return 0
+      const num = typeof raw === "string" ? parseFloat(raw) : Number(raw)
+      return isNaN(num) ? 0 : num
+    })(),
     yearInSchool: calculateYearInSchool(
       resumeData.education?.[0]?.end_date,
       resumeData.education?.[0]?.start_date

@@ -242,19 +242,19 @@ export function ResumeUpload() {
         setProgress(currentProgress)
       }, 1500)
 
-      // 2. Perform Coursework Matching & Analysis (Blocking)
-      // We wait for this to finish to ensure the dashboard has the latest matched data
-      // This also implicitly allows time for the "fun" messages to show
-      try {
-        const matchResponse = await fetch("/api/match-coursework?threshold=80")
-        const matchData = await matchResponse.json()
-
-        if (!matchData.success) {
-          console.warn("Course matching completed with warnings")
+      // 2. Perform Coursework Matching — UF students only (hits UF API, slow for everyone else)
+      const schoolName = data.education?.[0]?.school?.toLowerCase() || ""
+      const isUF = schoolName.includes("university of florida") || schoolName === "uf"
+      if (isUF) {
+        try {
+          const matchResponse = await fetch("/api/match-coursework?threshold=80")
+          const matchData = await matchResponse.json()
+          if (!matchData.success) {
+            console.warn("Course matching completed with warnings")
+          }
+        } catch (matchError) {
+          console.error("Error matching coursework:", matchError)
         }
-      } catch (matchError) {
-        console.error("Error matching coursework:", matchError)
-        // We continue even if matching fails, as basic resume data is saved
       }
 
       // 3. Pre-compute XYZ Analysis for all projects and experiences

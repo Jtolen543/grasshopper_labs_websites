@@ -33,30 +33,36 @@ export async function POST(request: NextRequest) {
 
     console.log(`Parsing resume content, length: ${content.length}`)
 
-    const data = await extractWithChatGPT(content) as Resume | null
+    // extractWithChatGPT returns { details: Resume, missing: string[] }
+    const parseResult = await extractWithChatGPT(content) as { details: Resume; missing: string[] } | null
 
-    if (!data) {
+    if (!parseResult?.details) {
         throw new Error("Failed to extract data from resume");
     }
+
+    const resumeData: Resume = parseResult.details
 
     // --- Auto-merge into Master Profile ---
     try {
       const masterKey = `uploads/${userId}/master-profile.json`
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let masterProfile = await getJsonFromS3<any>(masterKey)
-      
+
+      // Fix legacy bug: master profile was accidentally saved as { details, missing } instead of Resume
+      if (masterProfile && masterProfile.details && !masterProfile.experience) {
+        masterProfile = masterProfile.details
+        await putJsonToS3(masterKey, masterProfile)
+      }
+
       if (!masterProfile) {
         // If no master profile exists, this parsed resume becomes the foundation
-        await putJsonToS3(masterKey, data)
+        await putJsonToS3(masterKey, resumeData)
       } else {
-        // Merge!
         let hasChanges = false
-        
+
         // Merge experiences
-        if (data.experience && Array.isArray(data.experience)) {
-          for (const newExp of data.experience) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const exists = masterProfile.experience?.some((e: any) => 
+        if (resumeData.experience && Array.isArray(resumeData.experience)) {
+          for (const newExp of resumeData.experience) {
+            const exists = (masterProfile.experience || []).some((e: any) =>
               e.company?.toLowerCase().trim() === newExp.company?.toLowerCase().trim() &&
               e.position?.toLowerCase().trim() === newExp.position?.toLowerCase().trim()
             )
@@ -69,10 +75,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Merge projects
-        if (data.projects && Array.isArray(data.projects)) {
-          for (const newProj of data.projects) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const exists = masterProfile.projects?.some((p: any) => 
+        if (resumeData.projects && Array.isArray(resumeData.projects)) {
+          for (const newProj of resumeData.projects) {
+            const exists = (masterProfile.projects || []).some((p: any) =>
               p.name?.toLowerCase().trim() === newProj.name?.toLowerCase().trim()
             )
             if (!exists) {
@@ -84,15 +89,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Merge skills
-        if (data.skills) {
+        if (resumeData.skills) {
           if (!masterProfile.skills) masterProfile.skills = {}
-          const categories = ['programming_languages', 'frameworks', 'databases', 'devops_tools', 'other'] as const
+          const categories = ['programming_languages', 'frameworks', 'libraries', 'databases', 'devops_tools', 'cloud_platforms', 'other'] as const
           for (const cat of categories) {
-            if (data.skills[cat] && Array.isArray(data.skills[cat])) {
+            if (resumeData.skills[cat] && Array.isArray(resumeData.skills[cat])) {
               const currentArray = masterProfile.skills[cat] || []
               const current = new Set(currentArray.map((s: string) => s.toLowerCase().trim()))
               const updated = [...currentArray]
-              for (const skill of data.skills[cat]) {
+              for (const skill of resumeData.skills[cat]) {
                 if (typeof skill === 'string' && !current.has(skill.toLowerCase().trim())) {
                   updated.push(skill)
                   hasChanges = true
@@ -113,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Parsing completed successfully")
-    return NextResponse.json(data)
+    return NextResponse.json(parseResult)
   } catch (error) {
     console.error("Error parsing resume:", error)
     console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');

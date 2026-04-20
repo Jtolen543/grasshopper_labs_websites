@@ -10,6 +10,8 @@ export const questionnaireSchema = z.object({
   technicalSkills: z.array(z.string()).min(1, "Please select at least one technical skill"),
   location: z.array(z.string()).min(1, "Please select at least one location preference"),
   salaryExpectations: z.array(z.string()).min(1, "Please select at least one salary expectation"),
+  jobType: z.array(z.string()).min(1, "Please select a job type"),
+  degreeLevel: z.array(z.string()),
 })
 
 export type QuestionnaireData = z.infer<typeof questionnaireSchema>
@@ -95,4 +97,6 @@ export const questionnaireOptions = {
     "Remote (Anywhere)",
   ],
   salaryExpectations: ["$50k - $75k", "$75k - $100k", "$100k - $150k", "$150k - $200k", "$200k - $300k", "$300k+"],
+  jobType: ["Internship", "Full-Time", "Either / Both"],
+  degreeLevel: ["Undergraduate / Associate", "Master's Degree", "PhD / Doctorate", "No Preference"],
 }
