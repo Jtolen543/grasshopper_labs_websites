@@ -467,7 +467,7 @@ export default function MatchPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `resume-${jobCompany.toLowerCase().replace(/[^a-z0-9]/g, "-") || "tailored"}.tex`
+      a.download = `resume-${(jobCompany || "").toLowerCase().replace(/[^a-z0-9]/g, "-") || "tailored"}.tex`
       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
       toast.success("Tailored resume downloaded!")
     }

@@ -189,7 +189,7 @@ const ROLE_TO_MUSE_CATEGORY: Record<string, string> = {
 }
 
 function roleToMuseCategory(role: string): string {
-  const lower = role.toLowerCase()
+  const lower = (role || "").toLowerCase()
   for (const [key, cat] of Object.entries(ROLE_TO_MUSE_CATEGORY)) {
     if (lower.includes(key)) return cat
   }
@@ -228,7 +228,7 @@ function dedupeJobs(jobs: AdzunaJob[]): AdzunaJob[] {
   return jobs.filter(j => {
     if (seenIds.has(j.id)) return false
     seenIds.add(j.id)
-    const key = `${j.title.toLowerCase().replace(/\s+/g, " ").trim()}|${j.company.display_name.toLowerCase().trim()}`
+    const key = `${(j.title || "").toLowerCase().replace(/\s+/g, " ").trim()}|${(j.company?.display_name || "").toLowerCase().trim()}`
     if (seenTitleCompany.has(key)) return false
     seenTitleCompany.add(key)
     return true
@@ -250,7 +250,7 @@ async function fetchAdzunaJobs(prefs: Record<string, string[]>): Promise<AdzunaJ
 
   const wantsInternship = jobType.includes("Internship") && !jobType.includes("Full-Time")
   const wantsFullTime = jobType.includes("Full-Time") && !jobType.includes("Internship")
-  const isRemote = workEnvironment.some(e => e.toLowerCase().includes("remote")) || location.includes("Remote (Anywhere)")
+  const isRemote = workEnvironment.some(e => (e || "").toLowerCase().includes("remote")) || location.includes("Remote (Anywhere)")
 
   // Degree-level search tag appended to queries for signal (soft filter via LLM scoring)
   const degreeTags: string[] = []
@@ -345,7 +345,7 @@ export async function POST(): Promise<NR> {
       )
     }
 
-    const isRemote = (prefs.workEnvironment || []).some(e => e.toLowerCase().includes("remote")) ||
+    const isRemote = (prefs.workEnvironment || []).some(e => (e || "").toLowerCase().includes("remote")) ||
       (prefs.location || []).includes("Remote (Anywhere)")
 
     const [adzunaJobs, museJobs] = await Promise.all([
